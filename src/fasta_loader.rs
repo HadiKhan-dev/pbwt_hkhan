@@ -2,6 +2,7 @@ use std::cmp;
 use bio::io::fasta;
 use std::collections::HashMap;
 
+
 pub fn get_variations(files_list : &Vec<&str>,zero_pad: bool) -> Vec<Vec<u8>> {
     let mut final_vec: Vec<Vec<u8>> = Vec::new();
     let mut genome_strings: Vec<String> = Vec::new();

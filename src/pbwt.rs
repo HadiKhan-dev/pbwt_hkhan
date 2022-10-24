@@ -3,10 +3,10 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct PbwtInfo {
-    pbwt_data : Vec<Vec<u32>>,
-    divergence_array : Vec<Vec<u32>>,
-    count : Vec<u32>,
-    occ_list : Vec<Vec<HashMap<i32,u32>>>,
+    pub pbwt_data : Vec<Vec<u32>>,
+    pub divergence_array : Vec<Vec<u32>>,
+    pub count : Vec<u32>,
+    pub occ_list : Vec<Vec<HashMap<i32,u32>>>,
 }
 
 pub fn pbwt(haplotypes : &Vec<Vec<u8>>, fm_gap : u32) -> PbwtInfo{
@@ -97,8 +97,6 @@ pub fn pbwt(haplotypes : &Vec<Vec<u8>>, fm_gap : u32) -> PbwtInfo{
         
     }
 
-    println!("{:?}",prefixes);
-
     return PbwtInfo {
         pbwt_data : prefixes,
         divergence_array : divergences,
@@ -107,7 +105,7 @@ pub fn pbwt(haplotypes : &Vec<Vec<u8>>, fm_gap : u32) -> PbwtInfo{
     };
 }
 
-fn get_position(haplotypes: &Vec<Vec<u8>>,pbwt_data : &PbwtInfo,
+pub fn get_position(haplotypes: &Vec<Vec<u8>>,pbwt_data : &PbwtInfo,
      i: usize, location: i32, val: u8) -> i32 {
 
         let mut final_position : i32 = -2;
@@ -124,7 +122,7 @@ fn get_position(haplotypes: &Vec<Vec<u8>>,pbwt_data : &PbwtInfo,
                 }
                 cur_loc -= 1;
             }
-            final_position = (tot_add + occ_index[&(cur_loc as i32)]-1) as i32;
+            final_position = (tot_add as i32)+ (occ_index[&(cur_loc as i32)] as i32)-1;
         }
 
         if val == 1 {
@@ -139,12 +137,12 @@ fn get_position(haplotypes: &Vec<Vec<u8>>,pbwt_data : &PbwtInfo,
                 }
                 cur_loc -= 1;
             }
-            final_position = (tot_add + occ_index[&(cur_loc as i32)]+pbwt_data.count[i as usize]-1) as i32;
+            final_position = (tot_add as i32) + (occ_index[&(cur_loc as i32)] as i32) +(pbwt_data.count[i as usize] as i32)-1;
         }
         return final_position;
      }
 
-fn insert_place(haplotypes: &Vec<Vec<u8>>, pbwt_data: &PbwtInfo,
+pub fn insert_place(haplotypes: &Vec<Vec<u8>>, pbwt_data: &PbwtInfo,
      test_sequence: &Vec<u8>) -> Vec<i32> {
         let mut insert_positions : Vec<i32> = Vec::with_capacity(test_sequence.len()+1);
         insert_positions.push((haplotypes.len()-1) as i32);
