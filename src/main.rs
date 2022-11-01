@@ -1,6 +1,9 @@
 #![allow(warnings, unused)]
 
 use rand::Rng;
+use rand::thread_rng;
+use rand::seq::SliceRandom;
+
 use std::collections::HashMap;
 
 pub mod fasta_loader;
@@ -9,12 +12,15 @@ pub mod pbwt;
 
 pub mod imputer;
 
+pub mod vcf_loader;
+
+pub mod sites_loader;
 
 fn main() {
 
-    let mut reference_data = fasta_loader::remove_all_zeros(&fasta_loader::bool_leveling(&fasta_loader::get_variations(&vec!["testing.fasta"],true)));
-    //let mut test_sequence = reference_data.remove(665);
-    let mut test_sequence = reference_data[665].clone();
+/*     let mut reference_data = fasta_loader::remove_all_zeros(&fasta_loader::bool_leveling(&fasta_loader::get_variations(&vec!["testing.fasta"],true)));
+    let mut test_sequence = reference_data.remove(199);
+    //let mut test_sequence = reference_data[665].clone();
     let test_base = test_sequence.clone();
 
     println!("Loaded Data");
@@ -35,8 +41,19 @@ fn main() {
     let mut rand_muts: Vec<usize> = Vec::new();
     let mut old_vals: HashMap<usize,u8> = HashMap::new();
     
-    for i in 0..1000 {
-        let r_val: usize = rand::thread_rng().gen_range(0..test_sequence.len());
+    let ratio = 0.7;
+    let limit = ((ratio*(test_sequence.len() as f64)).ceil() as usize);
+
+    println!("{}",limit);
+    let mut shuf: Vec<usize> = (0..test_sequence.len()).collect();
+    shuf.shuffle(&mut thread_rng());
+
+
+    for i in 0..limit {     
+        //let r_val: usize = rand::thread_rng().gen_range(0..test_sequence.len());
+        let r_val: usize = shuf[i];
+
+
         if !old_vals.contains_key(&r_val) {
             rand_muts.push(r_val);
             old_vals.insert(r_val,test_sequence[r_val]);
@@ -102,7 +119,11 @@ fn main() {
 
     println!("");
     println!("Precision: {}",(one_hit as f64)/(one_imp as f64));
-    println!("Recall: {}",(one_hit as f64)/(one_correct as f64));
+    println!("Recall: {}",(one_hit as f64)/(one_correct as f64)); */
+
+    //vcf_loader::read("./vcf_data/omni10.vcf.gz");
+
+    sites_loader::read_sites("./omni10.sites");
 
 }
 
