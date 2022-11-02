@@ -4,11 +4,10 @@ use indexmap::indexmap;
 use std::str;
 use std::fs::File;
 
-use crate::vcf_loader;
-use crate::sites_loader;
+use crate::vcf_structs;
 
 
-pub fn write_vcf(vcf_data: vcf_loader::VCFData, sites_data: Vec<sites_loader::SiteRow>, filename: &str) -> () {
+pub fn write_vcf(vcf_data: vcf_structs::VCFData, sites_data: Vec<vcf_structs::SiteRow>, filename: &str) -> () {
 
     let mut write_buf: Vec<u8> = Vec::new();
     let sample_names = vcf_data.sample_names;
@@ -43,7 +42,7 @@ pub fn write_vcf(vcf_data: vcf_loader::VCFData, sites_data: Vec<sites_loader::Si
         let reference = row.reference;
         let alternative = row.alternate;
         let format = "GT".to_string();
-        let an = m;
+        let an = n;
         let mut ac = 0;
 
         let mut new_rec = VCFRecord::new(header.clone());
@@ -63,19 +62,28 @@ pub fn write_vcf(vcf_data: vcf_loader::VCFData, sites_data: Vec<sites_loader::Si
             let first_val = panel[first_i][j];
             let second_val = panel[second_i][j];
 
+            if first_val == 1 {
+                ac += 1;
+            }
+            if second_val == 1 {
+                ac += 1;
+            }
+
             let sam_name = &u8copy[i]; 
 
             let full_vals = vec![vec![first_val.to_string().into_bytes()[0],124,second_val.to_string().into_bytes()[0]]];
             full_geno.push(vec![full_vals]);
-
+            
         }
-        new_rec.genotype = full_geno;
 
+        let info = vec![(vec![65, 67], vec![ac.to_string().into_bytes()]), (vec![65, 78], vec![an.to_string().into_bytes()])];
+        
+        new_rec.genotype = full_geno;
+        new_rec.info = info;
 
         writer.write_record(&new_rec);
 
         j += 1
-
 
     }
 

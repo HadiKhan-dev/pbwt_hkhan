@@ -18,6 +18,7 @@ pub mod sites_loader;
 
 pub mod vcf_writer;
 
+pub mod vcf_structs;
 fn main() {
 
 /*     let mut reference_data = fasta_loader::remove_all_zeros(&fasta_loader::bool_leveling(&fasta_loader::get_variations(&vec!["testing.fasta"],true)));

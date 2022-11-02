@@ -3,13 +3,8 @@ use csv;
 use std::error::Error;
 use serde::Deserialize;
 
-#[derive(Deserialize)]
-pub struct SiteRow {
-    pub chromosome: u64,
-    pub position: u64,
-    pub reference: String,
-    pub alternate: String,
-}
+use crate::vcf_structs::SiteRow;
+
 
 pub fn read_sites(filename: &str) -> Result<Vec<SiteRow>,Box<dyn Error>> {
 
