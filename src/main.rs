@@ -16,6 +16,8 @@ pub mod vcf_loader;
 
 pub mod sites_loader;
 
+pub mod vcf_writer;
+
 fn main() {
 
 /*     let mut reference_data = fasta_loader::remove_all_zeros(&fasta_loader::bool_leveling(&fasta_loader::get_variations(&vec!["testing.fasta"],true)));
@@ -121,9 +123,11 @@ fn main() {
     println!("Precision: {}",(one_hit as f64)/(one_imp as f64));
     println!("Recall: {}",(one_hit as f64)/(one_correct as f64)); */
 
-    //vcf_loader::read("./vcf_data/omni10.vcf.gz");
+    let read_vcf = vcf_loader::read("./vcf_data/omni10.vcf.gz").unwrap();
 
-    sites_loader::read_sites("./omni10.sites");
+    let read_sites = sites_loader::read_sites("./vcf_data/omni10.sites").unwrap();
+    
+    vcf_writer::write_vcf(read_vcf,read_sites,"hkhan.vcf");
 
 }
 

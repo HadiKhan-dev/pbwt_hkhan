@@ -3,12 +3,13 @@ use flate2::read::MultiGzDecoder;
 use std::fs::File;
 use std::io::BufReader;
 
+
 #[derive(Debug)]
 pub struct VCFData {
-    vcf_data: Vec<Vec<u8>>,
-    positions: Vec<u64>,
-    sample_names: Vec<String>,
-    haplotype_names: Vec<String>,
+    pub vcf_data: Vec<Vec<u8>>,
+    pub positions: Vec<u64>,
+    pub sample_names: Vec<String>,
+    pub haplotype_names: Vec<String>,
 }
 
 pub fn read(filename: &str) -> Result<VCFData, VCFError> {
@@ -18,6 +19,8 @@ pub fn read(filename: &str) -> Result<VCFData, VCFError> {
 
     let mut sample_names = Vec::new();
     let mut haplotype_names = Vec::new();
+
+    //println!("{:?}",reader.header());
 
 
     for i in reader.header().samples() {
@@ -34,8 +37,6 @@ pub fn read(filename: &str) -> Result<VCFData, VCFError> {
         haplotype_names.push(first);
         haplotype_names.push(second);
     }
-
-    println!("{:?}",haplotype_names);
 
     let mut panel_matrix: Vec<Vec<u8>> = Vec::with_capacity(haplotype_names.len());
 
@@ -61,8 +62,8 @@ pub fn read(filename: &str) -> Result<VCFData, VCFError> {
         reader.next_record(&mut vcf_record);
         cur_position = vcf_record.position.clone();
 
-
-
+        //println!("{:?}",vcf_record.genotype);
+        
         if started & (cur_position == last_position) {
             finished = true;
             break;
@@ -89,8 +90,6 @@ pub fn read(filename: &str) -> Result<VCFData, VCFError> {
 
     }
 
-
-    println!("{:?}",panel_matrix.len());
 
     let loaded = VCFData { vcf_data: panel_matrix, positions: position_list,
         sample_names: sample_names, haplotype_names: haplotype_names};
