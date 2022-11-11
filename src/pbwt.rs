@@ -1,7 +1,9 @@
 use std::collections::HashMap;
+use crate::vcf_structs::VCFData;
+use serde::{Serialize,Deserialize};
 
 
-#[derive(Debug)]
+#[derive(Debug,Serialize,Deserialize)]
 pub struct PbwtInfo {
     pub pbwt_data : Vec<Vec<u32>>,
     pub divergence_array : Vec<Vec<u32>>,
@@ -105,6 +107,10 @@ pub fn pbwt(haplotypes : &Vec<Vec<u8>>, fm_gap : u32) -> PbwtInfo{
     };
 }
 
+pub fn get_pbwt_vcf(vcf_data: &VCFData,fm_gap: u32) -> PbwtInfo {
+    return pbwt(&vcf_data.vcf_data, fm_gap);
+}
+
 pub fn get_position(haplotypes: &Vec<Vec<u8>>,pbwt_data : &PbwtInfo,
      i: usize, location: i32, val: u8) -> i32 {
 
@@ -157,3 +163,4 @@ pub fn insert_place(haplotypes: &Vec<Vec<u8>>, pbwt_data: &PbwtInfo,
 
         return insert_positions;
      }
+

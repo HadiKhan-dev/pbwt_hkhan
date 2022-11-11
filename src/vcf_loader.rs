@@ -44,6 +44,8 @@ pub fn read(filename: &str) -> Result<VCFData, VCFError> {
 
     let mut position_list = Vec::new();
 
+    let mut chromosome_list = Vec::new();
+
     while !started |!finished {
 
         last_position = cur_position;
@@ -57,7 +59,8 @@ pub fn read(filename: &str) -> Result<VCFData, VCFError> {
             break;
         }
         started = true;
-
+        let chr_u64: u64 = String::from_utf8(vcf_record.chromosome.clone()).unwrap().parse().unwrap();
+        chromosome_list.push(chr_u64);
         position_list.push(cur_position);
         let mut current = 0;
 
@@ -79,7 +82,8 @@ pub fn read(filename: &str) -> Result<VCFData, VCFError> {
     }
 
 
-    let loaded = VCFData { vcf_data: panel_matrix, positions: position_list,
+    let loaded = VCFData { vcf_data: panel_matrix, chromosomes: chromosome_list,
+        positions: position_list,
         sample_names: sample_names, haplotype_names: haplotype_names};
 
     return Ok(loaded);

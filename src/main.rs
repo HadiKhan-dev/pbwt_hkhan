@@ -19,19 +19,29 @@ pub mod sites_loader;
 pub mod vcf_writer;
 
 pub mod vcf_structs;
+
+pub mod positions_parse;
+
+pub mod storer;
+
 fn main() {
 
-/*     let mut reference_data = fasta_loader::remove_all_zeros(&fasta_loader::bool_leveling(&fasta_loader::get_variations(&vec!["testing.fasta"],true)));
-    let mut test_sequence = reference_data.remove(199);
-    //let mut test_sequence = reference_data[665].clone();
-    let test_base = test_sequence.clone();
+    //let mut reference_data = fasta_loader::remove_all_zeros(&fasta_loader::bool_leveling(&fasta_loader::get_variations(&vec!["testing.fasta"],true)));
+    //let mut test_sequence = reference_data.remove(199);
+      //let mut test_sequence = reference_data[665].clone();
+    //let test_base = test_sequence.clone();
 
-    println!("Loaded Data");
+    //println!("Loaded Data");
 
-    let pbwt_dat = pbwt::pbwt(&reference_data,100);
+    //let pbwt_dat = pbwt::pbwt(&reference_data,100);
 
-    println!("Computed PBWT");
+    //storer::write_pbwt(&pbwt_dat,"compressed_write_test.pbwt");
 
+    //println!("Computed PBWT");
+    let read_pbwt = storer::read_pbwt("compressed_write_test.pbwt");
+
+    println!("{:?}",read_pbwt.divergence_array);
+    /*
     let mut tot_changed = 0;
     let mut correct = 0;
     let mut zero_correct = 0;
@@ -124,11 +134,19 @@ fn main() {
     println!("Precision: {}",(one_hit as f64)/(one_imp as f64));
     println!("Recall: {}",(one_hit as f64)/(one_correct as f64)); */
 
-    let read_vcf = vcf_loader::read("./vcf_data/omni10.vcf.gz").unwrap();
+    // let read_vcf = vcf_loader::read("./vcf_data/omni10.vcf.gz").unwrap();
 
-    let read_sites = sites_loader::read_sites("./vcf_data/omni10.sites").unwrap();
+    // let read_sites = sites_loader::read_sites("./vcf_data/omni10.sites").unwrap();
     
-    vcf_writer::write_vcf(read_vcf,read_sites,"hkhan.vcf");
+    // let illu_sites = sites_loader::read_sites("./vcf_data/illu1M.sites").unwrap();
+    
+    // //vcf_writer::write_vcf(read_vcf,read_sites,"hkhan.vcf");
+
+    // let kept_sites = positions_parse::get_intersection(&read_sites,&illu_sites);
+
+    // let new_vcf = positions_parse::keep_sites(&kept_sites,&read_vcf);
+
+    // println!("{:?}",new_vcf.vcf_data);
 
 }
 
