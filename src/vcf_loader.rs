@@ -2,14 +2,18 @@ use vcf::{VCFReader, U8Vec, VCFHeaderFilterAlt, VCFError, VCFRecord};
 use flate2::read::MultiGzDecoder;
 use std::fs::File;
 use std::io::BufReader;
+use std;
 
 use crate::vcf_structs::VCFData;
 
 pub fn read(filename: &str) -> Result<VCFData, VCFError> {
+
+
     let mut reader = VCFReader::new(BufReader::new(MultiGzDecoder::new(File::open(
         filename,
     )?)))?;
 
+    
     let mut sample_names = Vec::new();
     let mut haplotype_names = Vec::new();
 
@@ -27,6 +31,7 @@ pub fn read(filename: &str) -> Result<VCFData, VCFError> {
         haplotype_names.push(first);
         haplotype_names.push(second);
     }
+
 
     let mut panel_matrix: Vec<Vec<u8>> = Vec::with_capacity(haplotype_names.len());
 
@@ -46,25 +51,41 @@ pub fn read(filename: &str) -> Result<VCFData, VCFError> {
 
     let mut chromosome_list = Vec::new();
 
+
     while !started |!finished {
 
         last_position = cur_position;
 
 
         reader.next_record(&mut vcf_record);
+
         cur_position = vcf_record.position.clone();
         
+
+
         if started & (cur_position == last_position) {
             finished = true;
             break;
         }
         started = true;
-        let chr_u64: u64 = String::from_utf8(vcf_record.chromosome.clone()).unwrap().parse().unwrap();
-        chromosome_list.push(chr_u64);
+
+        //let chr_u64: u64 = String::from_utf8(vcf_record.chromosome.clone()).unwrap().parse().unwrap();
+        
+
+
+        let chr_str: String = String::from_utf8(vcf_record.chromosome.clone()).unwrap();
+        
+
+        chromosome_list.push(chr_str);
         position_list.push(cur_position);
+
         let mut current = 0;
 
+
+
+        
         for sam in &sample_names {
+
             let byteval = sam.as_bytes();
             let vals = vcf_record.genotype(byteval,b"GT").unwrap();
             let value = String::from_utf8(vals[0].clone()).unwrap();
@@ -77,10 +98,10 @@ pub fn read(filename: &str) -> Result<VCFData, VCFError> {
             panel_matrix[second_push].push(second_value);
 
             current += 1;
+
         }
 
     }
-
 
     let loaded = VCFData { vcf_data: panel_matrix, chromosomes: chromosome_list,
         positions: position_list,

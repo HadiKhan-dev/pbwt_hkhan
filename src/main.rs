@@ -6,6 +6,8 @@ use rand::seq::SliceRandom;
 
 use std::collections::HashMap;
 
+use std;
+
 pub mod fasta_loader;
 
 pub mod pbwt;
@@ -24,6 +26,9 @@ pub mod positions_parse;
 
 pub mod storer;
 
+use crate::storer::Basic;
+
+
 fn main() {
 
     //let mut reference_data = fasta_loader::remove_all_zeros(&fasta_loader::bool_leveling(&fasta_loader::get_variations(&vec!["testing.fasta"],true)));
@@ -38,9 +43,7 @@ fn main() {
     //storer::write_pbwt(&pbwt_dat,"compressed_write_test.pbwt");
 
     //println!("Computed PBWT");
-    let read_pbwt = storer::read_pbwt("compressed_write_test.pbwt");
 
-    println!("{:?}",read_pbwt.divergence_array);
     /*
     let mut tot_changed = 0;
     let mut correct = 0;
@@ -134,19 +137,67 @@ fn main() {
     println!("Precision: {}",(one_hit as f64)/(one_imp as f64));
     println!("Recall: {}",(one_hit as f64)/(one_correct as f64)); */
 
-    // let read_vcf = vcf_loader::read("./vcf_data/omni10.vcf.gz").unwrap();
 
+    //let panel_vcf = vcf_loader::read("./vcf_data/omni4k-10.vcf.gz").unwrap();
+    
+    //let test_vcf = vcf_loader::read("./vcf_data/omni10.vcf.gz").unwrap();
+    
     // let read_sites = sites_loader::read_sites("./vcf_data/omni10.sites").unwrap();
     
     // let illu_sites = sites_loader::read_sites("./vcf_data/illu1M.sites").unwrap();
     
-    // //vcf_writer::write_vcf(read_vcf,read_sites,"hkhan.vcf");
 
     // let kept_sites = positions_parse::get_intersection(&read_sites,&illu_sites);
 
-    // let new_vcf = positions_parse::keep_sites(&kept_sites,&read_vcf);
 
-    // println!("{:?}",new_vcf.vcf_data);
+    // let now = std::time::Instant::now();
+
+    // let new_test_vcf = positions_parse::keep_sites(&kept_sites,&test_vcf);
+
+    // let after = now.elapsed();
+
+    // println!("Reduction Time: {:.2?}",after);
+
+    // let now = std::time::Instant::now();
+
+    //let panel_pbwt = pbwt::pbwt(&panel_vcf.vcf_data,100);
+
+    // let after = now.elapsed();
+
+    // println!("PBWT Time: {:.2?}",after);
+
+    //storer::write_pbwt(&panel_pbwt,"test_pbwt.pbwt");
+
+    //println!("{:?}",new_test_vcf.vcf_data);
+
+    //let now = std::time::Instant::now();
+
+    //let r = storer::read_pbwt("test_pbwt.pbwt");
+
+    //let after = now.elapsed();
+
+    //println!("Read Time: {:.2?}",after);
+
+    //println!("{:?}",r.occ_list[0]);
+
+    //println!("{:?}",r.new_occ_list[0]);
+
+    let  X =
+    vec![
+    vec![0, 1, 0, 1, 0, 1],
+    vec![1, 1, 0, 0, 0, 1],
+    vec![1, 1, 1, 1, 1, 1],
+    vec![0, 1, 1, 1, 1, 0],
+    vec![0, 0, 0, 0, 1, 1],
+    vec![1, 0, 0, 0, 1, 0],
+    vec![1, 1, 0, 0, 0, 1],
+    vec![0, 1, 0, 1, 1, 0]];
+
+    let test = vec![0,0,0,0,0,0];
+
+    let p = pbwt::pbwt(&X,40);
+
+    println!("{:?}",pbwt::recover_sequence(&p,3));
 
 }
 
