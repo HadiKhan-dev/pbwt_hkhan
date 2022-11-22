@@ -1,6 +1,6 @@
 use serde;
 use serde_json;
-use crate::pbwt::PbwtInfo;
+use crate::pbwt_structs::PbwtInfo;
 use std;
 use flate2::Compression;
 use flate2::write::ZlibEncoder;

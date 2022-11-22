@@ -39,12 +39,12 @@ pub fn keep_sites(sites_to_keep: &Vec<SiteRow>, vcf_data: &VCFData) -> VCFData {
         main_set.insert((chr,pos));
     }
 
-    for j in (1..vcf_data.positions.len()) {
+    for j in (0..vcf_data.positions.len()) {
         let position = vcf_data.positions[j];
         let chromosome = vcf_data.chromosomes[j].clone();
 
         if !main_set.contains(&(chromosome,position)) {
-            for i in (1..vcf_data.haplotype_names.len()) {
+            for i in (0..vcf_data.haplotype_names.len()) {
                 new_vcf.vcf_data[i][j] = 255;
             }
         }

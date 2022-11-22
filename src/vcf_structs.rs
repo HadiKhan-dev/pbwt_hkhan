@@ -16,4 +16,5 @@ pub struct VCFData {
     pub positions: Vec<u64>,
     pub sample_names: Vec<String>,
     pub haplotype_names: Vec<String>,
+    pub minor_allele_freq: Vec<f64>
 }

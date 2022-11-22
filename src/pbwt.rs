@@ -1,19 +1,7 @@
 use std::collections::HashMap;
 use crate::vcf_structs::VCFData;
 use serde::{Serialize,Deserialize};
-
-
-#[derive(Debug,Serialize,Deserialize)]
-pub struct PbwtInfo {
-    pub bin_pbwt: Vec<Vec<u8>>,
-    //pub pbwt_data : Vec<Vec<u32>>,
-    //pub divergence_array : Vec<Vec<u32>>,
-    pub count : Vec<u32>,
-    //pub occ_list : Vec<Vec<HashMap<i32,u32>>>,
-    pub new_occ_list: Vec<Vec<Vec<u32>>>,
-    pub fm_gap: u32,
-}
-
+use crate::pbwt_structs::PbwtInfo;
 
 pub fn pbwt(haplotypes : &Vec<Vec<u8>>, fm_gap : u32) -> PbwtInfo{
 
@@ -29,8 +17,7 @@ pub fn pbwt(haplotypes : &Vec<Vec<u8>>, fm_gap : u32) -> PbwtInfo{
     let mut cur_divergence : Vec<u32> = vec![0; m];
 
     let mut count_vec: Vec<u32> = Vec::new();
-    let mut occ_vec : Vec<Vec<HashMap<i32,u32>>> = Vec::new();
-    let mut new_occ_vec : Vec<Vec<Vec<u32>>> = Vec::new();
+    let mut occ_vec : Vec<Vec<Vec<u32>>> = Vec::new();
 
     prefixes.push(cur_prefix.clone());
     divergences.push(cur_divergence.clone());
@@ -45,8 +32,7 @@ pub fn pbwt(haplotypes : &Vec<Vec<u8>>, fm_gap : u32) -> PbwtInfo{
 
         let mut zero_count_val: u32 = 0;
         let basemap : HashMap<i32,u32> = [(-1,0)].iter().cloned().collect();
-        let mut occ_positions: Vec<HashMap<i32,u32>> = vec![basemap.clone(),basemap.clone()];
-        let mut new_occ_positions: Vec<Vec<u32>> = vec![Vec::new(),Vec::new()];
+        let mut occ_positions: Vec<Vec<u32>> = vec![Vec::new(),Vec::new()];
 
         let mut ct: i32 = 0;
         let mut zero_tot = 0;
@@ -82,10 +68,8 @@ pub fn pbwt(haplotypes : &Vec<Vec<u8>>, fm_gap : u32) -> PbwtInfo{
             }
 
             if ct.rem_euclid(fm_gap as i32) == 0 {
-                occ_positions[0].insert(ct,zero_tot);
-                occ_positions[1].insert(ct,one_tot);
-                new_occ_positions[0].push(zero_tot);
-                new_occ_positions[1].push(one_tot);
+                occ_positions[0].push(zero_tot);
+                occ_positions[1].push(one_tot);
 
             }
             ct += 1;
@@ -113,17 +97,18 @@ pub fn pbwt(haplotypes : &Vec<Vec<u8>>, fm_gap : u32) -> PbwtInfo{
 
         count_vec.push(zero_count_val);
         occ_vec.push(occ_positions);
-        new_occ_vec.push(new_occ_positions);
         
     }
 
     return PbwtInfo {
+        num_samples: binaries[0].len() as u32,
+        num_sites: binaries.len() as u32,
         bin_pbwt : binaries,
         //pbwt_data : prefixes,
         //divergence_array : divergences,
         count : count_vec,
         //occ_list : occ_vec,
-        new_occ_list : new_occ_vec,
+        occ_list : occ_vec,
         fm_gap : fm_gap,
     };
 }
@@ -139,7 +124,7 @@ pub fn get_position(pbwt_data : &PbwtInfo,
 
         if val == 0 {
             //let occ_index = &pbwt_data.occ_list[i][0];
-            let new_occ_index = &pbwt_data.new_occ_list[i][0];
+            let new_occ_index = &pbwt_data.occ_list[i][0];
 
             let fm = pbwt_data.fm_gap;
 
@@ -172,7 +157,7 @@ pub fn get_position(pbwt_data : &PbwtInfo,
         if val == 1 {
 
             //let occ_index = &pbwt_data.occ_list[i][1];
-            let new_occ_index = &pbwt_data.new_occ_list[i][1];
+            let new_occ_index = &pbwt_data.occ_list[i][1];
 
             let fm = pbwt_data.fm_gap;
 
@@ -230,4 +215,5 @@ pub fn recover_sequence(pbwt_data: &PbwtInfo, index: u32) -> Vec<u8> {
     }
     return fin;
 }
+
 

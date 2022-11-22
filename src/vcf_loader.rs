@@ -103,9 +103,31 @@ pub fn read(filename: &str) -> Result<VCFData, VCFError> {
 
     }
 
+    let mut mafs: Vec<f64> = Vec::with_capacity(position_list.len());
+
+    for j in (0..mafs.len()) {
+        let mut ones : f64 = 0.0;
+        let mut tot : f64 = 0.0;
+
+        for i in 0..haplotype_names.len() {
+            if panel_matrix[i][j] == 1 {
+                ones += 1.0;
+            }
+            tot += 1.0;
+        }
+
+        let mut rat = ones/tot;
+
+        if 2.0*rat > 1.0 {
+            rat = 1.0-rat;
+        }
+
+        mafs.push(rat);
+    }
+
     let loaded = VCFData { vcf_data: panel_matrix, chromosomes: chromosome_list,
-        positions: position_list,
-        sample_names: sample_names, haplotype_names: haplotype_names};
+        positions: position_list, sample_names: sample_names,
+         haplotype_names: haplotype_names, minor_allele_freq : mafs};
 
     return Ok(loaded);
 }

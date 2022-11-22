@@ -5,12 +5,15 @@ use rand::thread_rng;
 use rand::seq::SliceRandom;
 
 use std::collections::HashMap;
-
+use std::thread::available_parallelism;
+use std::sync::{Arc,Mutex,mpsc};
 use std;
 
 pub mod fasta_loader;
 
 pub mod pbwt;
+
+pub mod pbwt_structs;
 
 pub mod imputer;
 
@@ -25,6 +28,8 @@ pub mod vcf_structs;
 pub mod positions_parse;
 
 pub mod storer;
+
+pub mod comparison;
 
 use crate::storer::Basic;
 
@@ -140,67 +145,85 @@ fn main() {
 
     //let panel_vcf = vcf_loader::read("./vcf_data/omni4k-10.vcf.gz").unwrap();
     
-    //let test_vcf = vcf_loader::read("./vcf_data/omni10.vcf.gz").unwrap();
+    let test_vcf = vcf_loader::read("./vcf_data/omni10.vcf.gz").unwrap();
     
-    // let read_sites = sites_loader::read_sites("./vcf_data/omni10.sites").unwrap();
+    let read_sites = sites_loader::read_sites("./vcf_data/omni10.sites").unwrap();
     
-    // let illu_sites = sites_loader::read_sites("./vcf_data/illu1M.sites").unwrap();
+    let illu_sites = sites_loader::read_sites("./vcf_data/illu1M.sites").unwrap();
     
 
-    // let kept_sites = positions_parse::get_intersection(&read_sites,&illu_sites);
+    let kept_sites = positions_parse::get_intersection(&read_sites,&illu_sites);
 
 
-    // let now = std::time::Instant::now();
+    let new_test_vcf = positions_parse::keep_sites(&kept_sites,&test_vcf);
 
-    // let new_test_vcf = positions_parse::keep_sites(&kept_sites,&test_vcf);
-
-    // let after = now.elapsed();
-
-    // println!("Reduction Time: {:.2?}",after);
-
-    // let now = std::time::Instant::now();
 
     //let panel_pbwt = pbwt::pbwt(&panel_vcf.vcf_data,100);
 
-    // let after = now.elapsed();
-
-    // println!("PBWT Time: {:.2?}",after);
-
-    //storer::write_pbwt(&panel_pbwt,"test_pbwt.pbwt");
+    //storer::write_pbwt(&panel_pbwt,"outputs/test_pbwt.pbwt");
 
     //println!("{:?}",new_test_vcf.vcf_data);
 
-    //let now = std::time::Instant::now();
 
-    //let r = storer::read_pbwt("test_pbwt.pbwt");
+    let panel_pbwt = storer::read_pbwt("outputs/test_pbwt.pbwt");
 
-    //let after = now.elapsed();
+    let now = std::time::Instant::now();
 
-    //println!("Read Time: {:.2?}",after);
+    let mut freqs : Vec<f64> = Vec::with_capacity(panel_pbwt.num_sites as usize);
 
-    //println!("{:?}",r.occ_list[0]);
+    for i in 0..panel_pbwt.num_sites {
+        let mut base = (panel_pbwt.count[i as usize] as f64)/(panel_pbwt.num_samples as f64);
+        base = 1.0-base;
+        freqs.push(100.0*base);
+    }
 
-    //println!("{:?}",r.new_occ_list[0]);
+    let mut a = new_test_vcf.vcf_data.clone();
+    let mut b = test_vcf.vcf_data.clone();
 
-    let  X =
-    vec![
-    vec![0, 1, 0, 1, 0, 1],
-    vec![1, 1, 0, 0, 0, 1],
-    vec![1, 1, 1, 1, 1, 1],
-    vec![0, 1, 1, 1, 1, 0],
-    vec![0, 0, 0, 0, 1, 1],
-    vec![1, 0, 0, 0, 1, 0],
-    vec![1, 1, 0, 0, 0, 1],
-    vec![0, 1, 0, 1, 1, 0]];
+    // for i in 0..99 {
+    //     let mut m = new_test_vcf.vcf_data.clone();
+    //     let mut n = test_vcf.vcf_data.clone();
+    //     a.append(&mut m);
+    //     b.append(&mut n);
+    // }
 
-    let test = vec![0,0,0,0,0,0];
+    let am = Arc::new(panel_pbwt);
+    let bm = Arc::clone(&am);
 
-    let p = pbwt::pbwt(&X,40);
+    let now = std::time::Instant::now();
 
-    println!("{:?}",pbwt::recover_sequence(&p,3));
+
+    let imputed = imputer::impute(am,a,8);
+
+    let elapsed = now.elapsed();
+    
+    let panel_pbwt = Arc::<pbwt_structs::PbwtInfo>::try_unwrap(bm).unwrap();
+
+    let bucket_bounds = vec![0.1, 0.2, 0.3, 0.5, 0.7, 1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 20.0, 30.0, 50.0, 70.0, 90.0, 100.0];
+
+    comparison::compare_results(&b,&imputed,&freqs,&bucket_bounds);
+
+
+    println!("Time total: {:.4?}", elapsed);
+
+    // let  X =
+    // vec![
+    // vec![0, 1, 0, 1, 0, 1],
+    // vec![1, 1, 0, 0, 0, 1],
+    // vec![1, 1, 1, 1, 1, 1],
+    // vec![0, 1, 1, 1, 1, 0],
+    // vec![0, 0, 0, 0, 1, 1],
+    // vec![1, 0, 0, 0, 1, 0],
+    // vec![1, 1, 0, 0, 0, 1],
+    // vec![0, 1, 0, 1, 1, 0]];
+
+    // let test = vec![0,0,0,0,0,0];
+
+    // let p = pbwt::pbwt(&X,40);
+
+    //println!("{:?}",pbwt::recover_sequence(&r,4));
 
 }
-
 
 
 
