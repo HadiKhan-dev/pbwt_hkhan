@@ -89,7 +89,7 @@ pub fn compare_results(true_values: &Vec<Vec<u8>>, imputed_values: &Vec<Vec<u8>>
 
         let corr = corr(&trues,&imputes);
 
-        println!("Bucket: {}, Corr: {:.4?}, Len: {}, Bias: {} {} ", name,corr,trues.len()/5,ct_zero_true,ct_zero_impute);
+        println!("Bucket: {}, Corr: {:.4?}, Len: {}, Bias: {} {} ", name,corr,trues.len()/5,(ct_zero_true as f64)/(trues.len() as f64),(ct_zero_impute as f64)/(trues.len() as f64));
 
     }
 

@@ -3,6 +3,8 @@
 use rand::Rng;
 use rand::thread_rng;
 use rand::seq::SliceRandom;
+use vcf_structs::SiteRow;
+use vcf_structs::VCFData;
 
 use std::collections::HashMap;
 use std::thread::available_parallelism;
@@ -12,6 +14,8 @@ use std;
 pub mod fasta_loader;
 
 pub mod pbwt;
+
+pub mod spaced_pbwt;
 
 pub mod pbwt_structs;
 
@@ -36,114 +40,7 @@ use crate::storer::Basic;
 
 fn main() {
 
-    //let mut reference_data = fasta_loader::remove_all_zeros(&fasta_loader::bool_leveling(&fasta_loader::get_variations(&vec!["testing.fasta"],true)));
-    //let mut test_sequence = reference_data.remove(199);
-      //let mut test_sequence = reference_data[665].clone();
-    //let test_base = test_sequence.clone();
-
-    //println!("Loaded Data");
-
-    //let pbwt_dat = pbwt::pbwt(&reference_data,100);
-
-    //storer::write_pbwt(&pbwt_dat,"compressed_write_test.pbwt");
-
-    //println!("Computed PBWT");
-
-    /*
-    let mut tot_changed = 0;
-    let mut correct = 0;
-    let mut zero_correct = 0;
-    let mut one_correct = 0;
-    let mut zero_imp = 0;
-    let mut one_imp = 0;
-    let mut zero_hit = 0;
-    let mut one_hit = 0;
-
-    let mut rand_muts: Vec<usize> = Vec::new();
-    let mut old_vals: HashMap<usize,u8> = HashMap::new();
-    
-    let ratio = 0.7;
-    let limit = ((ratio*(test_sequence.len() as f64)).ceil() as usize);
-
-    println!("{}",limit);
-    let mut shuf: Vec<usize> = (0..test_sequence.len()).collect();
-    shuf.shuffle(&mut thread_rng());
-
-
-    for i in 0..limit {     
-        //let r_val: usize = rand::thread_rng().gen_range(0..test_sequence.len());
-        let r_val: usize = shuf[i];
-
-
-        if !old_vals.contains_key(&r_val) {
-            rand_muts.push(r_val);
-            old_vals.insert(r_val,test_sequence[r_val]);
-            test_sequence[r_val] = 255;
-            tot_changed += 1;
-        }
-    }
-
-    let imp = imputer::impute(&reference_data, &pbwt_dat, &test_sequence);
-
-
-    for i in 0..rand_muts.len() {
-        let cur_point = rand_muts[i];
-        let imputed_value = imp[cur_point];
-        let old_value = *old_vals.get(&cur_point).unwrap();
-
-        if imputed_value == old_value {
-            correct += 1;
-        } 
-        if imputed_value == 0 && old_value == 0 {
-            zero_hit += 1;
-        }
-        if imputed_value == 1 && old_value == 1 {
-            one_hit += 1;
-        }
-        if old_value == 0 {
-            zero_correct += 1;
-        }
-        if old_value == 1 {
-            one_correct += 1;
-        }
-        if imputed_value == 0 {
-            zero_imp += 1;
-        }
-        if imputed_value == 1 {
-            one_imp += 1;
-        }
-    }
-
-    //for i in 0..imp.len() {
-    //    println!("{},{}",test_base[i],imp[i]);
-    //}
-
-    println!("");
-    println!("Length: {}",test_sequence.len());
-    println!("Percentage Imputed: {}",(tot_changed as f64)/(test_sequence.len() as f64));
-    println!("");
-    println!("Correct: {} out of total: {}",correct,tot_changed);
-    println!("Ratio: {:.2}%",100.0*(correct as f64)/(tot_changed as f64));
-
-    println!("");
-    println!("Percent Zero: {}",100.0*(zero_correct as f64)/(tot_changed as f64));
-    println!("Percent One: {}",100.0*(one_correct as f64)/(tot_changed as f64));
-    //println!("{:?}",imp);
-
-    println!("");
-    println!("Imp Percent Zero: {}",100.0*(zero_imp as f64)/(tot_changed as f64));
-    println!("Imp Percent One: {}",100.0*(one_imp as f64)/(tot_changed as f64));
-
-    println!("");
-    println!("Correct Zero Percentage: {}",100.0*(zero_hit as f64)/(zero_correct as f64));
-    println!("Correct One Percentage: {}",100.0*(one_hit as f64)/(one_correct as f64));
-
-    println!("");
-    println!("Precision: {}",(one_hit as f64)/(one_imp as f64));
-    println!("Recall: {}",(one_hit as f64)/(one_correct as f64)); */
-
-
-    //let panel_vcf = vcf_loader::read("./vcf_data/omni4k-10.vcf.gz").unwrap();
+    let panel_vcf = vcf_loader::read("./vcf_data/omni4k-10.vcf.gz").unwrap();
     
     let test_vcf = vcf_loader::read("./vcf_data/omni10.vcf.gz").unwrap();
     
@@ -158,23 +55,23 @@ fn main() {
     let new_test_vcf = positions_parse::keep_sites(&kept_sites,&test_vcf);
 
 
-    //let panel_pbwt = pbwt::pbwt(&panel_vcf.vcf_data,100);
+    let dual_panel_pbwt = spaced_pbwt::dual_pbwt(&panel_vcf,&kept_sites,100);
+
+    println!("here");
 
     //storer::write_pbwt(&panel_pbwt,"outputs/test_pbwt.pbwt");
 
-    //println!("{:?}",new_test_vcf.vcf_data);
+    // //println!("{:?}",new_test_vcf.vcf_data);
 
+    // let panel_pbwt = storer::read_pbwt("outputs/test_pbwt.pbwt");
 
-    let panel_pbwt = storer::read_pbwt("outputs/test_pbwt.pbwt");
+    // let now = std::time::Instant::now();
 
-    let now = std::time::Instant::now();
+    let mut freqs : Vec<f64> = Vec::with_capacity(dual_panel_pbwt.forward_pbwt.num_total_sites as usize);
 
-    let mut freqs : Vec<f64> = Vec::with_capacity(panel_pbwt.num_sites as usize);
-
-    for i in 0..panel_pbwt.num_sites {
-        let mut base = (panel_pbwt.count[i as usize] as f64)/(panel_pbwt.num_samples as f64);
-        base = 1.0-base;
-        freqs.push(100.0*base);
+    for i in 0..dual_panel_pbwt.forward_pbwt.num_total_sites {
+        let zero_freq = (dual_panel_pbwt.forward_pbwt.count[i as usize] as f64)/(dual_panel_pbwt.forward_pbwt.num_samples as f64);
+        freqs.push(100.0*(1.0-zero_freq));
     }
 
     let mut a = new_test_vcf.vcf_data.clone();
@@ -187,17 +84,17 @@ fn main() {
     //     b.append(&mut n);
     // }
 
-    let am = Arc::new(panel_pbwt);
+    let am = Arc::new(dual_panel_pbwt);
     let bm = Arc::clone(&am);
 
     let now = std::time::Instant::now();
 
 
-    let imputed = imputer::impute(am,a,8);
+    let imputed = imputer::new_impute(am,a,8);
 
     let elapsed = now.elapsed();
     
-    let panel_pbwt = Arc::<pbwt_structs::PbwtInfo>::try_unwrap(bm).unwrap();
+    let dual_panel_pbwt = Arc::<pbwt_structs::DualPbwt>::try_unwrap(bm).unwrap();
 
     let bucket_bounds = vec![0.1, 0.2, 0.3, 0.5, 0.7, 1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 20.0, 30.0, 50.0, 70.0, 90.0, 100.0];
 
@@ -217,11 +114,49 @@ fn main() {
     // vec![1, 1, 0, 0, 0, 1],
     // vec![0, 1, 0, 1, 1, 0]];
 
-    // let test = vec![0,0,0,0,0,0];
+    // let Y = X.clone();
 
-    // let p = pbwt::pbwt(&X,40);
+    // let l = X.len();
+    // let m = X[0].len();
 
-    //println!("{:?}",pbwt::recover_sequence(&r,4));
+    // let vcf = VCFData {
+    //     vcf_data: X,
+    //     chromosomes : vec![String::from("1"); m],
+    //     positions: (1..((m+1) as u32)).collect(),
+
+    //     sample_names: vec![String::from("A"),String::from("B"),
+    //     String::from("C"),String::from("D")],
+
+    //     haplotype_names: vec![String::from("A[0]"),String::from("A[1]"),String::from("B[0]"),
+    //     String::from("B[1]"),String::from("C[0]"),String::from("C[1]"),String::from("D[0]"),
+    //     String::from("D[1]")],
+
+    //     alt_allele_freq: vec![0.0;m],
+    // };
+
+    // let test = vec![0,0,0,255,255,255];
+
+    // let mut keep_rows = Vec::new();
+
+    // for i in vec![0,1,2] {
+    //     let new_sr = SiteRow {
+    //         chromosome: String::from("1"),
+    //         position: (i+1) as u32,
+    //         reference: String::from("A"),
+    //         alternate: String::from("C"),
+    //     };
+    //     keep_rows.push(new_sr);
+    // }
+
+    // let p = spaced_pbwt::spaced_pbwt(&vcf,&keep_rows,10);
+    // let l = spaced_pbwt::dual_pbwt(&vcf,&keep_rows,1);
+
+    // let ins = spaced_pbwt::spaced_insert_place(&p, &test);
+
+    // let impd = imputer::new_impute_single(&l,&test);
+    // //let recd = spaced_pbwt::spaced_recover_sequence(&p,7);
+    // println!("{:?}",impd);
+
 
 }
 

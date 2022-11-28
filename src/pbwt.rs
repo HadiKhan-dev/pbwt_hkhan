@@ -31,7 +31,6 @@ pub fn pbwt(haplotypes : &Vec<Vec<u8>>, fm_gap : u32) -> PbwtInfo{
         let mut q: u32 = i+1;
 
         let mut zero_count_val: u32 = 0;
-        let basemap : HashMap<i32,u32> = [(-1,0)].iter().cloned().collect();
         let mut occ_positions: Vec<Vec<u32>> = vec![Vec::new(),Vec::new()];
 
         let mut ct: i32 = 0;
@@ -99,6 +98,8 @@ pub fn pbwt(haplotypes : &Vec<Vec<u8>>, fm_gap : u32) -> PbwtInfo{
         occ_vec.push(occ_positions);
         
     }
+
+    println!("Prefixes: {:?}",prefixes);
 
     return PbwtInfo {
         num_samples: binaries[0].len() as u32,
@@ -189,7 +190,7 @@ pub fn get_position(pbwt_data : &PbwtInfo,
      }
 
 pub fn insert_place(pbwt_data: &PbwtInfo,
-     test_sequence: &Vec<u8>) -> Vec<i32> {
+    test_sequence: &Vec<u8>) -> Vec<i32> {
         let mut insert_positions : Vec<i32> = Vec::with_capacity(test_sequence.len()+1);
         insert_positions.push((pbwt_data.bin_pbwt[0].len()-1) as i32);
         for i in 0..test_sequence.len() {
@@ -202,7 +203,7 @@ pub fn insert_place(pbwt_data: &PbwtInfo,
 
 
         return insert_positions;
-     }
+    }
 
 pub fn recover_sequence(pbwt_data: &PbwtInfo, index: u32) -> Vec<u8> {
     let length = pbwt_data.bin_pbwt.len();

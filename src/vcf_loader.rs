@@ -47,7 +47,7 @@ pub fn read(filename: &str) -> Result<VCFData, VCFError> {
     let mut started = false;
     let mut finished = false;
 
-    let mut position_list = Vec::new();
+    let mut position_list: Vec<u32> = Vec::new();
 
     let mut chromosome_list = Vec::new();
 
@@ -77,7 +77,7 @@ pub fn read(filename: &str) -> Result<VCFData, VCFError> {
         
 
         chromosome_list.push(chr_str);
-        position_list.push(cur_position);
+        position_list.push(cur_position as u32);
 
         let mut current = 0;
 
@@ -118,16 +118,42 @@ pub fn read(filename: &str) -> Result<VCFData, VCFError> {
 
         let mut rat = ones/tot;
 
-        if 2.0*rat > 1.0 {
-            rat = 1.0-rat;
-        }
-
         mafs.push(rat);
     }
 
     let loaded = VCFData { vcf_data: panel_matrix, chromosomes: chromosome_list,
         positions: position_list, sample_names: sample_names,
-         haplotype_names: haplotype_names, minor_allele_freq : mafs};
+         haplotype_names: haplotype_names, alt_allele_freq : mafs};
 
     return Ok(loaded);
+}
+
+pub fn reverse_vcf(vcf: &VCFData) -> VCFData {
+    let mut rev_vcf_data = vcf.vcf_data.clone();
+    for i in 0..rev_vcf_data.len() {
+        rev_vcf_data[i].reverse();
+    }
+
+    let mut rev_chromosomes = vcf.chromosomes.clone();
+    rev_chromosomes.reverse();
+
+    let mut rev_positions = vcf.positions.clone();
+    rev_positions.reverse();
+
+    let rev_sample_names = vcf.sample_names.clone();
+
+    let rev_haplotype_names = vcf.haplotype_names.clone();
+
+    let mut rev_alt_allele_freq = vcf.alt_allele_freq.clone();
+    rev_alt_allele_freq.reverse();
+
+    return VCFData {
+        vcf_data: rev_vcf_data,
+        chromosomes: rev_chromosomes,
+        positions: rev_positions,
+        sample_names: rev_sample_names,
+        haplotype_names: rev_haplotype_names,
+        alt_allele_freq: rev_alt_allele_freq,
+    }
+
 }

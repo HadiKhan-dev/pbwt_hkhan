@@ -47,7 +47,7 @@ pub fn write_vcf(vcf_data: vcf_structs::VCFData, sites_data: Vec<vcf_structs::Si
 
         let mut new_rec = VCFRecord::new(header.clone());
         new_rec.chromosome = chr.to_string().into_bytes();
-        new_rec.position = position;
+        new_rec.position = position as u64;
         new_rec.reference = reference.into_bytes();
         new_rec.alternative = vec![alternative.into_bytes()];
         new_rec.filter = vec!["PASS".to_string().into_bytes()];
