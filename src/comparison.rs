@@ -32,13 +32,18 @@ pub fn corr(xi: &Vec<f64>,yi: &Vec<f64>) -> f64 {
 }
 
 
-pub fn compare_results(true_values: &Vec<Vec<u8>>, imputed_values: &Vec<Vec<u8>>, allele_freqs: &Vec<f64>, buckets : &Vec<f64>) -> () {
+pub fn compare_results(true_values: &Vec<Vec<u8>>, imputed_values: &Vec<Vec<u8>>, keep_flags : &Vec<u8>, allele_freqs: &Vec<f64>, buckets : &Vec<f64>) -> () {
     let mut bucketed: Vec<Vec<[f64;2]>> = vec![Vec::new(); buckets.len()];
     let N = true_values[0].len();
     let M = true_values.len();
 
 
     for j in 0..N {
+
+        if keep_flags[j] == 0 {
+            continue;
+        }
+
         let freq = allele_freqs[j];
         let position = buckets.binary_search_by(|v| {
             v.partial_cmp(&freq).expect("Couldn't compare values")
@@ -52,6 +57,8 @@ pub fn compare_results(true_values: &Vec<Vec<u8>>, imputed_values: &Vec<Vec<u8>>
                 loc = i;
             }
         }
+
+        println!("{} {}",freq,buckets[loc]);
 
         for i in 0..(M/2) {
             let true_sum = true_values[2*i][j]+true_values[2*i+1][j];
@@ -89,7 +96,7 @@ pub fn compare_results(true_values: &Vec<Vec<u8>>, imputed_values: &Vec<Vec<u8>>
 
         let corr = corr(&trues,&imputes);
 
-        println!("Bucket: {}, Corr: {:.4?}, Len: {}, Bias: {} {} ", name,corr,trues.len()/5,(ct_zero_true as f64)/(trues.len() as f64),(ct_zero_impute as f64)/(trues.len() as f64));
+        println!("Bucket: {}, Corr: {:.4?}, Len: {}, Bias: True Zero: {:.4?} Imputed Zero: {:.4?} ", name,corr,trues.len()/5,100.0*(ct_zero_true as f64)/(trues.len() as f64),100.0*(ct_zero_impute as f64)/(imputes.len() as f64));
 
     }
 

@@ -33,5 +33,5 @@ pub struct SpacedPbwt {
 #[derive(Debug,Serialize,Deserialize,Clone)]
 pub struct DualPbwt {
     pub forward_pbwt: SpacedPbwt,
-    pub backward_pbwt: SpacedPbwt,
+    pub reverse_pbwt: SpacedPbwt,
 }

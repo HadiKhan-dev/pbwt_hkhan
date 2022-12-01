@@ -28,6 +28,8 @@ fn get_score(first : u8,second : u8,p : f64) -> f64 {
 pub fn impute_single(pbwt_data : &pbwt_structs::PbwtInfo, test_sequence : &Vec<u8>) -> Vec<u8> {
     let p: f64 = 0.999;
     let alpha: f64 = 0.9;
+
+    let mut side_distance = 3;
     
     let mut final_sequence: Vec<u8> = Vec::new();
     let mut position : i32 = (pbwt_data.bin_pbwt[0].len()-1) as i32;
@@ -115,7 +117,7 @@ pub fn impute_single(pbwt_data : &pbwt_structs::PbwtInfo, test_sequence : &Vec<u
 
 pub fn new_impute_single(pbwt_data: &DualPbwt, test_sequence: &Vec<u8>) -> Vec<u8> {
 
-    let side_distance = 1;
+    let side_distance = 4;
     let mut final_sequence: Vec<u8> = Vec::new();
     let m = test_sequence.len();
     let panel_size = pbwt_data.forward_pbwt.num_samples as usize;
@@ -124,7 +126,7 @@ pub fn new_impute_single(pbwt_data: &DualPbwt, test_sequence: &Vec<u8>) -> Vec<u
     test_rev.reverse();
 
     let forward_places = spaced_insert_place(&pbwt_data.forward_pbwt, test_sequence);
-    let mut reverse_places = spaced_insert_place(&pbwt_data.backward_pbwt, &test_rev);
+    let mut reverse_places = spaced_insert_place(&pbwt_data.reverse_pbwt, &test_rev);
     reverse_places.reverse();
 
     for i in 0..m {
@@ -140,52 +142,125 @@ pub fn new_impute_single(pbwt_data: &DualPbwt, test_sequence: &Vec<u8>) -> Vec<u
             let reverse_max = min(place_reverse+side_distance+1,panel_size as i32) as usize;
 
 
-            let forward_vals_lower = &pbwt_data.forward_pbwt.bin_pbwt[i][forward_min..(place_forward+1) as usize];
-            let forward_vals_upper = &pbwt_data.forward_pbwt.bin_pbwt[i][(place_forward+1) as usize..forward_max];
+            let forward_vals_lower_ref = &pbwt_data.forward_pbwt.bin_pbwt[i][forward_min..(place_forward+1) as usize];
+            let forward_vals_upper_ref = &pbwt_data.forward_pbwt.bin_pbwt[i][(place_forward+1) as usize..forward_max];
 
-            let reverse_vals_lower = &pbwt_data.backward_pbwt.bin_pbwt[m-i-1][reverse_min..(place_reverse+1) as usize];
-            let reverse_vals_upper = &pbwt_data.backward_pbwt.bin_pbwt[m-i-1][(place_reverse+1) as usize..reverse_max];
+            let reverse_vals_lower_ref = &pbwt_data.reverse_pbwt.bin_pbwt[m-i-1][reverse_min..(place_reverse+1) as usize];
+            let reverse_vals_upper_ref = &pbwt_data.reverse_pbwt.bin_pbwt[m-i-1][(place_reverse+1) as usize..reverse_max];
+
+            let mut forward_vals_lower = Vec::new();
+            let mut forward_vals_upper = Vec::new();
+
+            let mut reverse_vals_lower = Vec::new();
+            let mut reverse_vals_upper = Vec::new();
+
+            for i in 0..forward_vals_lower_ref.len() {
+                forward_vals_lower.push(forward_vals_lower_ref[forward_vals_lower_ref.len()-1-i]);
+            }
+
+            for i in 0..forward_vals_upper_ref.len() {
+                forward_vals_upper.push(forward_vals_upper_ref[i]);
+            }
+
+            for i in 0..reverse_vals_lower_ref.len() {
+                reverse_vals_lower.push(reverse_vals_lower_ref[reverse_vals_lower_ref.len()-1-i]);
+            }
+
+            for i in 0..reverse_vals_upper_ref.len() {
+                reverse_vals_upper.push(reverse_vals_upper_ref[i]);
+            }
+
+
+
 
             let mut zero_tot = 0;
             let mut one_tot = 0;
 
-            for val in forward_vals_lower {
-                if *val == 0 {
-                    zero_tot += 1;
+            let mut expo: f64 = 0.0;
+
+            let intercept = -7.96707151;
+
+            let coeffs = vec![16.39305966,0.97798448];
+
+            expo += intercept;
+
+
+            for i in 0..(side_distance as usize) {
+                let forward_lower_val: f64;
+                let forward_upper_val: f64;
+                let reverse_lower_val: f64;
+                let reverse_upper_val: f64;
+
+                if i < forward_vals_lower.len() {
+                    forward_lower_val = forward_vals_lower[i] as f64; 
                 } else {
+                    forward_lower_val = 0.5;
+                }
+
+                if i < forward_vals_upper.len() {
+                    forward_upper_val = forward_vals_upper[i] as f64; 
+                } else {
+                    forward_upper_val = 0.5;
+                }
+
+                if i < reverse_vals_lower.len() {
+                    reverse_lower_val = reverse_vals_lower[i] as f64; 
+                } else {
+                    reverse_lower_val = 0.5;
+                }
+
+                if i < reverse_vals_upper.len() {
+                    reverse_upper_val = reverse_vals_upper[i] as f64; 
+                } else {
+                    reverse_upper_val = 0.5;
+                }
+
+                if i < coeffs.len() {
+                    expo += 0.25*forward_lower_val*coeffs[i];
+                    expo += 0.25*forward_upper_val*coeffs[i];
+                    expo += 0.25*reverse_lower_val*coeffs[i];
+                    expo += 0.25*reverse_upper_val*coeffs[i];
+                }
+
+
+                if forward_lower_val == 0.0 {
+                    zero_tot += 1;
+                } else if forward_lower_val == 1.0 {
+                    one_tot += 1;
+                }
+
+                if forward_upper_val == 0.0 {
+                    zero_tot += 1;
+                } else if forward_upper_val == 1.0 {
+                    one_tot += 1;
+                }
+
+                if reverse_lower_val == 0.0 {
+                    zero_tot += 1;
+                } else if reverse_lower_val == 1.0 {
+                    one_tot += 1;
+                }
+
+                if reverse_upper_val == 0.0 {
+                    zero_tot += 1;
+                } else if reverse_upper_val == 1.0 {
                     one_tot += 1;
                 }
             }
 
-            for val in forward_vals_upper {
-                if *val == 0 {
-                    zero_tot += 1;
-                } else {
-                    one_tot += 1;
-                }
-            }
+            let prob: f64 = 1.0/(1.0+(-expo).exp());
 
-            for val in reverse_vals_lower {
-                if *val == 0 {
-                    zero_tot += 1;
-                } else {
-                    one_tot += 1;
-                }
-            }
-
-            for val in reverse_vals_upper {
-                if *val == 0 {
-                    zero_tot += 1;
-                } else {
-                    one_tot += 1;
-                }
-            }
-
-            if one_tot >= zero_tot {
+            if prob > 0.5 {
                 final_sequence.push(1);
             } else {
                 final_sequence.push(0);
             }
+
+            // if one_tot >= zero_tot {
+            //     final_sequence.push(1);
+            // } else {
+            //     final_sequence.push(0);
+            // }
 
 
         }

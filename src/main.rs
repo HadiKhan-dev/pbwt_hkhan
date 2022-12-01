@@ -54,10 +54,27 @@ fn main() {
 
     let new_test_vcf = positions_parse::keep_sites(&kept_sites,&test_vcf);
 
+    let arc_sites = Arc::new(kept_sites);
 
-    let dual_panel_pbwt = spaced_pbwt::dual_pbwt(&panel_vcf,&kept_sites,100);
+    let arc_panel = Arc::new(panel_vcf);
 
-    println!("here");
+    let now = std::time::Instant::now();
+
+    let dual_panel_pbwt = spaced_pbwt::dual_pbwt(arc_panel,arc_sites,100);
+
+    let elapsed = now.elapsed();
+
+    println!("PBWT Time: {:.4?}", elapsed);
+
+    let mut imputed_col_flags = dual_panel_pbwt.forward_pbwt.pbwt_col_flags.clone();
+
+    for i in 0..imputed_col_flags.len() {
+        if imputed_col_flags[i] == 0 {
+            imputed_col_flags[i] = 1;
+        } else {
+            imputed_col_flags[i] = 0;
+        }
+    }
 
     //storer::write_pbwt(&panel_pbwt,"outputs/test_pbwt.pbwt");
 
@@ -98,7 +115,7 @@ fn main() {
 
     let bucket_bounds = vec![0.1, 0.2, 0.3, 0.5, 0.7, 1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 20.0, 30.0, 50.0, 70.0, 90.0, 100.0];
 
-    comparison::compare_results(&b,&imputed,&freqs,&bucket_bounds);
+    comparison::compare_results(&b,&imputed,&imputed_col_flags, &freqs,&bucket_bounds);
 
 
     println!("Time total: {:.4?}", elapsed);

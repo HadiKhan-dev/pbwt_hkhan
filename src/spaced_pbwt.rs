@@ -1,7 +1,11 @@
+use threadpool::ThreadPool;
+
 use crate::vcf_loader;
 use crate::vcf_structs::{VCFData, SiteRow};
 use crate::pbwt_structs::{SpacedPbwt, DualPbwt};
+use closure::closure;
 use std::collections::HashSet;
+use std::sync::{Arc, mpsc};
 
 pub fn spaced_pbwt(vcf: &VCFData, pbwt_cols: &Vec<SiteRow>, fm_gap: u32) -> SpacedPbwt {
 
@@ -292,9 +296,30 @@ pub fn spaced_recover_sequence(pbwt_data: &SpacedPbwt, index: u32) -> Vec<u8> {
     return fin;
 }
 
-pub fn dual_pbwt(vcf_data: &VCFData, pbwt_cols: &Vec<SiteRow>, fm_gap: u32) -> DualPbwt{
-    let forward = spaced_pbwt(vcf_data,pbwt_cols,fm_gap);
-    let reverse = spaced_pbwt(&vcf_loader::reverse_vcf(vcf_data),pbwt_cols,fm_gap);
+pub fn dual_pbwt(vcf_data: Arc<VCFData>, pbwt_cols: Arc<Vec<SiteRow>>, fm_gap: u32) -> DualPbwt{
 
-    return DualPbwt { forward_pbwt: forward, backward_pbwt: reverse };
+
+    let pool = ThreadPool::new(1);
+
+    let (tx,rx) = mpsc::channel();
+
+    let vcf_copy = Arc::clone(&vcf_data);
+    let pbwt_col_copy = Arc::clone(&pbwt_cols);
+
+
+    let first_closure = closure!(move vcf_copy, move pbwt_col_copy, move tx, || {
+        let reverse_vcf = vcf_loader::reverse_vcf(&vcf_copy);
+        let reverse_pbwt = spaced_pbwt(&reverse_vcf,&pbwt_col_copy,fm_gap);
+
+        tx.send(reverse_pbwt).unwrap();
+
+    });
+
+    pool.execute(first_closure);
+
+    let forward = spaced_pbwt(&vcf_data,&pbwt_cols,fm_gap);
+    let mut reverse: SpacedPbwt = rx.recv().unwrap();
+
+
+    return DualPbwt { forward_pbwt: forward, reverse_pbwt: reverse };
 }
