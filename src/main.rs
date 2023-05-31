@@ -1,10 +1,14 @@
 #![allow(warnings, unused)]
 
+
+use xgboost_rs;
+
 use rand::Rng;
 use rand::thread_rng;
 use rand::seq::SliceRandom;
 use vcf_structs::SiteRow;
 use vcf_structs::VCFData;
+
 
 use std::collections::HashMap;
 use std::thread::available_parallelism;
@@ -35,10 +39,46 @@ pub mod storer;
 
 pub mod comparison;
 
+pub mod pca_weights;
+
 use crate::storer::Basic;
 
+fn fix_zeros(float_data: &mut [f32]) {
+    /*
+    Replace zeros with epsilon to stop XGBoost from considering them as NaN values
+     */
+    let ZERO: f32 = 1e-15;
+    for x in float_data {
+        if *x == 0.0 {
+            *x = ZERO;
+        }
+    }
+}
+
+fn flatten_matrix(data: Vec<Vec<f32>>) -> Vec<f32> {
+
+    return data.into_iter().flatten().collect();
+}
 
 fn main() {
+
+    // let mut data: Vec<Vec<f32>> = 
+    // vec![vec![0.0,0.1,0.12,0.2,5.0,8.0,10.0,3.0],
+    // vec![0.0,0.1,0.12,0.2,5.0,8.0,10.0,3.0]];
+
+    // let num_rows = data.len();
+
+    // let mut flat_data = flatten_matrix(data);
+
+    // fix_zeros(&mut flat_data);
+
+
+    // let mut d_matrix = xgboost_rs::DMatrix::from_dense(&mut flat_data,num_rows).unwrap();
+
+
+    let model = xgboost_rs::Booster::load(
+        "../pbwt_python/model_dump.json").unwrap();
+
 
     let panel_vcf = vcf_loader::read("./vcf_data/omni4k-10.vcf.gz").unwrap();
     
@@ -76,14 +116,6 @@ fn main() {
         }
     }
 
-    //storer::write_pbwt(&panel_pbwt,"outputs/test_pbwt.pbwt");
-
-    // //println!("{:?}",new_test_vcf.vcf_data);
-
-    // let panel_pbwt = storer::read_pbwt("outputs/test_pbwt.pbwt");
-
-    // let now = std::time::Instant::now();
-
     let mut freqs : Vec<f64> = Vec::with_capacity(dual_panel_pbwt.forward_pbwt.num_total_sites as usize);
 
     for i in 0..dual_panel_pbwt.forward_pbwt.num_total_sites {
@@ -94,12 +126,12 @@ fn main() {
     let mut a = new_test_vcf.vcf_data.clone();
     let mut b = test_vcf.vcf_data.clone();
 
-    // for i in 0..99 {
-    //     let mut m = new_test_vcf.vcf_data.clone();
-    //     let mut n = test_vcf.vcf_data.clone();
-    //     a.append(&mut m);
-    //     b.append(&mut n);
-    // }
+    for i in 0..0 {
+        let mut m = new_test_vcf.vcf_data.clone();
+        let mut n = test_vcf.vcf_data.clone();
+        a.append(&mut m);
+        b.append(&mut n);
+    }
 
     let am = Arc::new(dual_panel_pbwt);
     let bm = Arc::clone(&am);
@@ -107,7 +139,7 @@ fn main() {
     let now = std::time::Instant::now();
 
 
-    let imputed = imputer::new_impute(am,a,8);
+    let imputed = imputer::impute(am,a,1);
 
     let elapsed = now.elapsed();
     
@@ -119,61 +151,6 @@ fn main() {
 
 
     println!("Time total: {:.4?}", elapsed);
-
-    // let  X =
-    // vec![
-    // vec![0, 1, 0, 1, 0, 1],
-    // vec![1, 1, 0, 0, 0, 1],
-    // vec![1, 1, 1, 1, 1, 1],
-    // vec![0, 1, 1, 1, 1, 0],
-    // vec![0, 0, 0, 0, 1, 1],
-    // vec![1, 0, 0, 0, 1, 0],
-    // vec![1, 1, 0, 0, 0, 1],
-    // vec![0, 1, 0, 1, 1, 0]];
-
-    // let Y = X.clone();
-
-    // let l = X.len();
-    // let m = X[0].len();
-
-    // let vcf = VCFData {
-    //     vcf_data: X,
-    //     chromosomes : vec![String::from("1"); m],
-    //     positions: (1..((m+1) as u32)).collect(),
-
-    //     sample_names: vec![String::from("A"),String::from("B"),
-    //     String::from("C"),String::from("D")],
-
-    //     haplotype_names: vec![String::from("A[0]"),String::from("A[1]"),String::from("B[0]"),
-    //     String::from("B[1]"),String::from("C[0]"),String::from("C[1]"),String::from("D[0]"),
-    //     String::from("D[1]")],
-
-    //     alt_allele_freq: vec![0.0;m],
-    // };
-
-    // let test = vec![0,0,0,255,255,255];
-
-    // let mut keep_rows = Vec::new();
-
-    // for i in vec![0,1,2] {
-    //     let new_sr = SiteRow {
-    //         chromosome: String::from("1"),
-    //         position: (i+1) as u32,
-    //         reference: String::from("A"),
-    //         alternate: String::from("C"),
-    //     };
-    //     keep_rows.push(new_sr);
-    // }
-
-    // let p = spaced_pbwt::spaced_pbwt(&vcf,&keep_rows,10);
-    // let l = spaced_pbwt::dual_pbwt(&vcf,&keep_rows,1);
-
-    // let ins = spaced_pbwt::spaced_insert_place(&p, &test);
-
-    // let impd = imputer::new_impute_single(&l,&test);
-    // //let recd = spaced_pbwt::spaced_recover_sequence(&p,7);
-    // println!("{:?}",impd);
-
 
 }
 

@@ -58,7 +58,6 @@ pub fn compare_results(true_values: &Vec<Vec<u8>>, imputed_values: &Vec<Vec<u8>>
             }
         }
 
-        println!("{} {}",freq,buckets[loc]);
 
         for i in 0..(M/2) {
             let true_sum = true_values[2*i][j]+true_values[2*i+1][j];

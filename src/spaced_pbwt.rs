@@ -9,12 +9,12 @@ use std::sync::{Arc, mpsc};
 
 pub fn spaced_pbwt(vcf: &VCFData, pbwt_cols: &Vec<SiteRow>, fm_gap: u32) -> SpacedPbwt {
 
-    let data_positions = vcf.positions.clone();
+    let data_positions: Vec<u32> = vcf.positions.clone();
     let mut pbwt_positions: Vec<u32> = Vec::new();
     let mut insert_positions: Vec<u32> = Vec::new();
-    let data = &vcf.vcf_data;
+    let data: &Vec<Vec<u8>> = &vcf.vcf_data;
 
-    let mut col_set = HashSet::new();
+    let mut col_set: HashSet<u32> = HashSet::new();
 
     let mut n: usize = 0;
 
@@ -24,10 +24,14 @@ pub fn spaced_pbwt(vcf: &VCFData, pbwt_cols: &Vec<SiteRow>, fm_gap: u32) -> Spac
         n += 1;
     }
 
+    
+
     let m = data.len();
     let n_full = data[0].len();
 
     let n_other = n_full-n;
+
+    println!("PBWT: {},{},{}",n_full,n_other,n);
 
     let mut is_pbwt_col :Vec<u8> = Vec::with_capacity(n_full+1);
     let mut pbwt_positions: Vec<u32> = Vec::new();
@@ -35,137 +39,182 @@ pub fn spaced_pbwt(vcf: &VCFData, pbwt_cols: &Vec<SiteRow>, fm_gap: u32) -> Spac
     let mut prefixes : Vec<Vec<u32>> = Vec::with_capacity(n+1);
     let mut divergences : Vec<Vec<u32>> = Vec::with_capacity(n+1);
     let mut binaries: Vec<Vec<u8>> = Vec::with_capacity(n_full+1);
-    let mut cur_prefix : Vec<u32> = Vec::from_iter(0..m as u32);
-    let mut cur_divergence : Vec<u32> = vec![0; m];
-    let mut j = 0;
+
+
+    let cur_prefix : Vec<u32> = Vec::from_iter(0..m as u32);
+    let cur_divergence : Vec<u32> = vec![0; m];
+    let mut j: usize = 0;
     let mut j_pbwt = 0;
 
     let mut count_vec: Vec<u32> = Vec::new();
     let mut occ_vec : Vec<Vec<Vec<u32>>> = Vec::new();
 
-    prefixes.push(cur_prefix.clone());
-    divergences.push(cur_divergence.clone());
+    prefixes.push(cur_prefix);
+    divergences.push(cur_divergence);
+
+    let mut cur_prefix_ref: &Vec<u32> = &(prefixes[prefixes.len()-1]);
+    let mut cur_divergence_ref: &Vec<u32> = &divergences[divergences.len()-1];
+
+    let mut ct: i32 = 0;
+    let mut ct_extra: u32 = 0;
+    let mut zero_tot: u32 = 0;
+    let mut one_tot: u32 = 0;
+    let mut occ_positions: Vec<Vec<u32>> = vec![Vec::new(),Vec::new()];
+    let mut new_add: Vec<u8> = Vec::with_capacity(m);
+
+    let mut a: Vec<u32> = Vec::with_capacity(m);
+    let mut b: Vec<u32> = Vec::with_capacity(m);
+    let mut d: Vec<u32> = Vec::with_capacity(m);
+    let mut e: Vec<u32> = Vec::with_capacity(m);
+
+    let mut bin_values: Vec<u8> = Vec::with_capacity(m);
+
 
     for col in &vcf.positions {
         if !col_set.contains(&col) {
-            let mut ct: i32 = 0;
-            let mut zero_count_val: u32 = 0;
-            let mut zero_tot = 0;
-            let mut one_tot = 0;
-            let mut occ_positions: Vec<Vec<u32>> = vec![Vec::new(),Vec::new()];
 
-            let mut new_add: Vec<u8> = Vec::with_capacity(m);
 
-            for i in 0..m {
-                let val = data[cur_prefix[i] as usize][j];
+            ct = 0;
+            ct_extra = 0;
+            zero_tot = 0;
+            one_tot = 0;
+            occ_positions = vec![Vec::new(),Vec::new()];
+
+            new_add = Vec::with_capacity(m);
+
+            let mut val: u8;
+            for idx in cur_prefix_ref.iter() {
+
+
+                unsafe {
+                val = *data.get_unchecked(*idx as usize).get_unchecked(j);
+                }
+
+
                 new_add.push(val);
 
                 if val == 0 {
-                    zero_count_val += 1;
                     zero_tot += 1;
                 } else if val == 1 {
                     one_tot += 1;
                 }
 
-                if ct.rem_euclid(fm_gap as i32) == 0 {
+                if (ct == 0) || (ct_extra == fm_gap) {
                     occ_positions[0].push(zero_tot);
                     occ_positions[1].push(one_tot);
+                    ct_extra = 0;
     
                 }
+
                 ct += 1;
+                ct_extra += 1;
+
+
             }
 
             binaries.push(new_add);
             is_pbwt_col.push(0);
             inserted_positions.push(*col);
-            count_vec.push(zero_count_val);
+            count_vec.push(zero_tot);
             occ_vec.push(occ_positions);
+
 
         } else {
 
-            let mut a: Vec<u32> = Vec::new();
-            let mut b: Vec<u32> = Vec::new();
-            let mut d: Vec<u32> = Vec::new();
-            let mut e: Vec<u32> = Vec::new();
+
+            a = Vec::with_capacity(m);
+            b = Vec::with_capacity(m);
+            d = Vec::with_capacity(m);
+            e = Vec::with_capacity(m);
+
+            bin_values = Vec::with_capacity(m);
+
             let mut p: u32 = j_pbwt+1;
             let mut q: u32 = j_pbwt+1;
 
-            let mut zero_count_val: u32 = 0;
-            let mut occ_positions: Vec<Vec<u32>> = vec![Vec::new(),Vec::new()];
+            occ_positions = vec![Vec::new(),Vec::new()];
 
-            let mut ct: i32 = 0;
-            let mut zero_tot = 0;
-            let mut one_tot = 0;
+            ct = 0;
+            ct_extra = 0;
+            zero_tot = 0;
+            one_tot = 0;
 
+            let mut cur_allele: u8;
             for (idx,start_point) in
-            cur_prefix.iter().zip(cur_divergence.iter()) {
+            cur_prefix_ref.iter().zip(cur_divergence_ref.iter()) {
 
-                let cur_allele: u8 = data[*idx as usize][j as usize];
+                let idx_val = *idx;
 
-                if *start_point > p {
-                p = *start_point;
+                unsafe {
+                cur_allele = *data.get_unchecked(idx_val as usize).get_unchecked(j);
                 }
 
-                if *start_point > q {
-                q = *start_point;
+                bin_values.push(cur_allele);
+
+                let st = *start_point;
+
+                if st > p {
+                p = st;
+                }
+
+                if st > q {
+                q = st;
                 }
 
                 if cur_allele == 0 {
-                    a.push(*idx);
+                    a.push(idx_val);
                     d.push(p);
                     p = 0;
-    
-                    zero_count_val += 1;
+
                     zero_tot += 1;
                 }
     
                 if cur_allele == 1 {
-                    b.push(*idx);
+                    b.push(idx_val);
                     e.push(q);
                     q = 0;
     
                     one_tot += 1;
                 }
 
-                if ct.rem_euclid(fm_gap as i32) == 0 {
+                if (ct == 0) || (ct_extra == fm_gap) {
                     occ_positions[0].push(zero_tot);
                     occ_positions[1].push(one_tot);
+                    ct_extra = 0;
     
                 }
                 ct += 1;
-
+                ct_extra += 1;
             
             }  
+
             
-            let mut new_prefix = a.clone();
-            new_prefix.append(&mut b.clone());
-            let mut new_divergence = d.clone();
-            new_divergence.append(&mut e.clone());
-
-            let mut bin_values: Vec<u8> = Vec::with_capacity(new_prefix.len());
+            let mut new_prefix = a;
+            new_prefix.append(&mut b);
+            let mut new_divergence = d;
+            new_divergence.append(&mut e);
 
 
-            for v in (0..m) {
-                bin_values.push(data[cur_prefix[v] as usize][j as usize]);
-            }
-
-
-            prefixes.push(new_prefix.clone());
-            divergences.push(new_divergence.clone());
+            prefixes.push(new_prefix);
+            divergences.push(new_divergence);
             binaries.push(bin_values);
 
-            cur_prefix = new_prefix;
-            cur_divergence = new_divergence;
+            cur_prefix_ref = &(prefixes[prefixes.len()-1]);
+            cur_divergence_ref = &divergences[divergences.len()-1];
 
-            count_vec.push(zero_count_val);
+            count_vec.push(zero_tot);
             occ_vec.push(occ_positions);
 
             is_pbwt_col.push(1);
             pbwt_positions.push(*col);
+
         }
         j += 1;
 
     }
+
+    println!("Size: {},{}",binaries.len(),binaries[0].len());
+
 
     return SpacedPbwt {
         num_samples: m as u32,
@@ -189,6 +238,10 @@ pub fn spaced_pbwt(vcf: &VCFData, pbwt_cols: &Vec<SiteRow>, fm_gap: u32) -> Spac
 
 pub fn spaced_get_position(pbwt_data : &SpacedPbwt,
     is_pbwt_col: u8, i: usize, location: i32, val: u8) -> i32 {
+    /**
+    Function to get the position a sequence moves to based on its current position
+    and upcoming value in a SpacedPBWT
+    */
 
     if is_pbwt_col == 1 {
 
@@ -207,12 +260,15 @@ pub fn spaced_get_position(pbwt_data : &SpacedPbwt,
             let mut tot_add = 0;
             let mut cur_loc = location;
 
-            while (cur_loc.rem_euclid(fm as i32) != 0) && (cur_loc != -1) {
+            let mut rem_diff = cur_loc.rem_euclid(fm as i32);
+
+            while (rem_diff != 0) && (cur_loc != -1) {
                let cur_val = pbwt_data.bin_pbwt[i][cur_loc as usize];
                if cur_val == 0 {
                     tot_add += 1;
                }
                cur_loc -= 1;
+               rem_diff -= 1;
             }
             let extra_add = {
                if cur_loc == -1 {
@@ -240,12 +296,15 @@ pub fn spaced_get_position(pbwt_data : &SpacedPbwt,
             let mut tot_add = 0;
             let mut cur_loc = location;
 
-            while (cur_loc.rem_euclid(fm as i32) != 0) && (cur_loc != -1) {
+            let mut rem_diff = cur_loc.rem_euclid(fm as i32);
+
+            while (rem_diff != 0) && (cur_loc != -1) {
                 let cur_val = pbwt_data.bin_pbwt[i][cur_loc as usize];
                 if cur_val == 1 {
                     tot_add += 1;
                 }
                 cur_loc -= 1;
+                rem_diff -= 1;
             }
             let extra_add = {
                 if cur_loc == -1 {
@@ -308,7 +367,13 @@ pub fn dual_pbwt(vcf_data: Arc<VCFData>, pbwt_cols: Arc<Vec<SiteRow>>, fm_gap: u
 
 
     let first_closure = closure!(move vcf_copy, move pbwt_col_copy, move tx, || {
+        let now = std::time::Instant::now();
         let reverse_vcf = vcf_loader::reverse_vcf(&vcf_copy);
+
+        let elapsed = now.elapsed();
+
+        println!("Reverse time: {:.4?}", elapsed);
+
         let reverse_pbwt = spaced_pbwt(&reverse_vcf,&pbwt_col_copy,fm_gap);
 
         tx.send(reverse_pbwt).unwrap();
