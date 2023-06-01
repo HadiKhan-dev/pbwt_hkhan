@@ -48,17 +48,25 @@ pub mod helper_structs;
 fn main() {
 
     // let mut data: Vec<Vec<f32>> = 
-    // vec![vec![0.0,0.1,0.12,0.2,5.0,8.0,10.0,3.0],
-    // vec![0.0,0.1,0.12,0.2,5.0,8.0,10.0,3.0]];
+    // vec![[vec![1.0; 5],vec![0.0;5],vec![1.0; 5],vec![0.0;5],
+    // vec![1.0; 5],vec![0.0;5],vec![1.0; 5],vec![0.0;5],vec![10.0;40]].concat()];
 
-    // let num_rows = data.len();
+    let mut data: Vec<Vec<f32>> = vec![vec![1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15]];
 
-    // let mut flat_data = flatten_matrix(data);
+    let mut flat_data = imputer::flatten_matrix(data);
 
-    // fix_zeros(&mut flat_data);
+    imputer::fix_zeros(&mut flat_data);
 
+    let mut d_matrix = xgboost_rs::DMatrix::from_dense(&mut flat_data,1).unwrap();
 
-    // let mut d_matrix = xgboost_rs::DMatrix::from_dense(&mut flat_data,num_rows).unwrap();
+    let model_100 = xgboost_rs::Booster::load(
+        "../pbwt_python/xgboost_models/model_100.json").unwrap();
+
+    let preds = model_100.predict(&d_matrix).unwrap();
+
+    println!("{:?}",preds);
+
+    ///////////////////////////////////////////////
 
     let model_0dot1 = xgboost_rs::Booster::load(
         "../pbwt_python/xgboost_models/model_2.json").unwrap();
@@ -93,7 +101,7 @@ fn main() {
     let model_90 = xgboost_rs::Booster::load(
         "../pbwt_python/xgboost_models/model_90.json").unwrap();
     let model_100 = xgboost_rs::Booster::load(
-        "../pbwt_python/xgboost_models/model_100.json").unwrap();
+        "../pbwt_python/xgboost_models/new_model_100.json").unwrap();
     let basic_model = xgboost_rs::Booster::load(
         "../pbwt_python/xgboost_models/basic_model.json").unwrap();
 
@@ -102,11 +110,9 @@ fn main() {
                                         model_10,model_20,model_30,model_50,model_70,
                                         model_90,model_100];
 
-    // let xgboost_models = vec![basic_model];
 
     let arc_models = Arc::new(xgboost_models);
     
-    // println!("Predictions: {:?}",model.predict(&d_matrix));
 
 
     let panel_vcf = vcf_loader::read("./vcf_data/omni4k-10.vcf.gz").unwrap();

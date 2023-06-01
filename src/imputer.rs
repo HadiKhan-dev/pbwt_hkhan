@@ -20,7 +20,7 @@ struct RowWPos{
     pub row: Vec<u8>,
 }
 
-fn fix_zeros(float_data: &mut [f32]) {
+pub fn fix_zeros(float_data: &mut [f32]) {
     /*
     Replace zeros with epsilon to stop XGBoost from considering them as NaN values
      */
@@ -32,7 +32,7 @@ fn fix_zeros(float_data: &mut [f32]) {
     }
 }
 
-fn flatten_matrix(data: Vec<Vec<f32>>) -> Vec<f32> {
+pub fn flatten_matrix(data: Vec<Vec<f32>>) -> Vec<f32> {
     /*
     Flatten a 2D matrix to 1D
      */
@@ -292,8 +292,11 @@ pub fn impute_single_xgboost(pbwt_data: &DualPbwt, xgboost_models: &Vec<xgboost_
 
     for j in 0..buckets.len() {
         let d_matrix = xgboost_rs::DMatrix::from_dense(&mut impute_inputs[j],impute_counts[j]).unwrap();
-        let impute_numbers = xgboost_models[j].predict(&d_matrix).unwrap();
+        let impute_numbers = xgboost_models[16].predict(&d_matrix).unwrap();
 
+        if j == buckets.len()-1 {
+            println!("{:?}",&impute_inputs[j][0..80]);
+        }
         imputed_values.push(impute_numbers.iter().map(
             |x| small_test(*x,prob_cutoff[j])).collect());
     }
