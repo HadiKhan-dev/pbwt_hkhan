@@ -15,6 +15,8 @@ use std::thread::available_parallelism;
 use std::sync::{Arc,Mutex,mpsc};
 use std;
 
+use crate::storer::Basic;
+
 pub mod fasta_loader;
 
 pub mod pbwt;
@@ -41,24 +43,7 @@ pub mod comparison;
 
 pub mod pca_weights;
 
-use crate::storer::Basic;
-
-fn fix_zeros(float_data: &mut [f32]) {
-    /*
-    Replace zeros with epsilon to stop XGBoost from considering them as NaN values
-     */
-    let ZERO: f32 = 1e-15;
-    for x in float_data {
-        if *x == 0.0 {
-            *x = ZERO;
-        }
-    }
-}
-
-fn flatten_matrix(data: Vec<Vec<f32>>) -> Vec<f32> {
-
-    return data.into_iter().flatten().collect();
-}
+pub mod helper_structs;
 
 fn main() {
 
@@ -75,9 +60,53 @@ fn main() {
 
     // let mut d_matrix = xgboost_rs::DMatrix::from_dense(&mut flat_data,num_rows).unwrap();
 
+    let model_0dot1 = xgboost_rs::Booster::load(
+        "../pbwt_python/xgboost_models/model_2.json").unwrap();
+    let model_0dot2 = xgboost_rs::Booster::load(
+        "../pbwt_python/xgboost_models/model_2.json").unwrap();
+    let model_0dot3 = xgboost_rs::Booster::load(
+        "../pbwt_python/xgboost_models/model_2.json").unwrap();
+    let model_0dot5 = xgboost_rs::Booster::load(
+        "../pbwt_python/xgboost_models/model_2.json").unwrap();
+    let model_0dot7 = xgboost_rs::Booster::load(
+        "../pbwt_python/xgboost_models/model_2.json").unwrap();
+    let model_1 = xgboost_rs::Booster::load(
+        "../pbwt_python/xgboost_models/model_2.json").unwrap();
+    let model_2 = xgboost_rs::Booster::load(
+        "../pbwt_python/xgboost_models/model_2.json").unwrap();
+    let model_3 = xgboost_rs::Booster::load(
+        "../pbwt_python/xgboost_models/model_3.json").unwrap();
+    let model_5 = xgboost_rs::Booster::load(
+        "../pbwt_python/xgboost_models/model_5.json").unwrap();
+    let model_7 = xgboost_rs::Booster::load(
+        "../pbwt_python/xgboost_models/model_7.json").unwrap();
+    let model_10 = xgboost_rs::Booster::load(
+        "../pbwt_python/xgboost_models/model_10.json").unwrap();
+    let model_20 = xgboost_rs::Booster::load(
+        "../pbwt_python/xgboost_models/model_20.json").unwrap();
+    let model_30 = xgboost_rs::Booster::load(
+        "../pbwt_python/xgboost_models/model_30.json").unwrap();
+    let model_50 = xgboost_rs::Booster::load(
+        "../pbwt_python/xgboost_models/model_50.json").unwrap();
+    let model_70 = xgboost_rs::Booster::load(
+        "../pbwt_python/xgboost_models/model_70.json").unwrap();
+    let model_90 = xgboost_rs::Booster::load(
+        "../pbwt_python/xgboost_models/model_90.json").unwrap();
+    let model_100 = xgboost_rs::Booster::load(
+        "../pbwt_python/xgboost_models/model_100.json").unwrap();
+    let basic_model = xgboost_rs::Booster::load(
+        "../pbwt_python/xgboost_models/basic_model.json").unwrap();
 
-    let model = xgboost_rs::Booster::load(
-        "../pbwt_python/model_dump.json").unwrap();
+    let xgboost_models = vec![model_0dot1,model_0dot2,model_0dot3,model_0dot5,
+                                        model_0dot7,model_1,model_2,model_3,model_5,model_7,
+                                        model_10,model_20,model_30,model_50,model_70,
+                                        model_90,model_100];
+
+    // let xgboost_models = vec![basic_model];
+
+    let arc_models = Arc::new(xgboost_models);
+    
+    // println!("Predictions: {:?}",model.predict(&d_matrix));
 
 
     let panel_vcf = vcf_loader::read("./vcf_data/omni4k-10.vcf.gz").unwrap();
@@ -138,12 +167,12 @@ fn main() {
 
     let now = std::time::Instant::now();
 
-
-    let imputed = imputer::impute(am,a,1);
+    // let imp = imputer::impute_single_xgboost(&am,&arc_models,&a[0]);
+    let imputed = imputer::impute_xgboost(am,arc_models,a,8);
 
     let elapsed = now.elapsed();
     
-    let dual_panel_pbwt = Arc::<pbwt_structs::DualPbwt>::try_unwrap(bm).unwrap();
+    // let dual_panel_pbwt = Arc::<pbwt_structs::DualPbwt>::try_unwrap(bm).unwrap();
 
     let bucket_bounds = vec![0.1, 0.2, 0.3, 0.5, 0.7, 1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 20.0, 30.0, 50.0, 70.0, 90.0, 100.0];
 

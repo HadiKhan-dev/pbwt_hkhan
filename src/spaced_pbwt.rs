@@ -3,9 +3,11 @@ use threadpool::ThreadPool;
 use crate::vcf_loader;
 use crate::vcf_structs::{VCFData, SiteRow};
 use crate::pbwt_structs::{SpacedPbwt, DualPbwt};
+use crate::helper_structs::{PositionData,FullInsertData};
 use closure::closure;
 use std::collections::HashSet;
 use std::sync::{Arc, mpsc};
+use std::cmp;
 
 pub fn spaced_pbwt(vcf: &VCFData, pbwt_cols: &Vec<SiteRow>, fm_gap: u32) -> SpacedPbwt {
 
@@ -31,7 +33,6 @@ pub fn spaced_pbwt(vcf: &VCFData, pbwt_cols: &Vec<SiteRow>, fm_gap: u32) -> Spac
 
     let n_other = n_full-n;
 
-    println!("PBWT: {},{},{}",n_full,n_other,n);
 
     let mut is_pbwt_col :Vec<u8> = Vec::with_capacity(n_full+1);
     let mut pbwt_positions: Vec<u32> = Vec::new();
@@ -213,9 +214,6 @@ pub fn spaced_pbwt(vcf: &VCFData, pbwt_cols: &Vec<SiteRow>, fm_gap: u32) -> Spac
 
     }
 
-    println!("Size: {},{}",binaries.len(),binaries[0].len());
-
-
     return SpacedPbwt {
         num_samples: m as u32,
         num_pbwt_sites: n as u32,
@@ -237,11 +235,28 @@ pub fn spaced_pbwt(vcf: &VCFData, pbwt_cols: &Vec<SiteRow>, fm_gap: u32) -> Spac
 
 
 pub fn spaced_get_position(pbwt_data : &SpacedPbwt,
-    is_pbwt_col: u8, i: usize, location: i32, val: u8) -> i32 {
+    is_pbwt_col: u8, col_number: usize, location: isize, val: u8, side_distance: usize,
+    divergence_distance: usize, current_divergence: &Vec<Vec<u32>>) -> PositionData {
     /**
     Function to get the position a sequence moves to based on its current position
-    and upcoming value in a SpacedPBWT
+    and upcoming value in a SpacedPBWT, also collects the n neighbouring upper and lower
+    values as well as a representation of how long the neighbours have been moving with
+    the PBWT.
+
+    col_number is the index of the upcoming column
     */
+
+    let mut final_position: isize = -2;
+
+    if (current_divergence.len() != 2) || (current_divergence[0].len() != divergence_distance) {
+        println!("Size of {}, {}, {}",current_divergence.len(),current_divergence[0].len(),divergence_distance);
+        
+        panic!("Current divergence array input does not match stated size");
+    }
+
+    if side_distance < divergence_distance {
+        panic!("Side length must be at least equal to divergence length")
+    }
 
     if is_pbwt_col == 1 {
 
@@ -249,57 +264,55 @@ pub fn spaced_get_position(pbwt_data : &SpacedPbwt,
             panic!("Trying to update PBWT position based on missing data");
         }
 
-        let mut final_position : i32 = -2;
-
         if val == 0 {
             //let occ_index = &pbwt_data.occ_list[i][0];
-            let new_occ_index = &pbwt_data.occ_list[i][0];
+            let new_occ_index = &pbwt_data.occ_list[col_number][0];
 
             let fm = pbwt_data.fm_gap;
 
             let mut tot_add = 0;
             let mut cur_loc = location;
 
-            let mut rem_diff = cur_loc.rem_euclid(fm as i32);
+            let mut rem_diff = cur_loc.rem_euclid(fm as isize);
 
             while (rem_diff != 0) && (cur_loc != -1) {
-               let cur_val = pbwt_data.bin_pbwt[i][cur_loc as usize];
-               if cur_val == 0 {
+                let cur_val = pbwt_data.bin_pbwt[col_number][cur_loc as usize];
+                if cur_val == 0 {
                     tot_add += 1;
-               }
-               cur_loc -= 1;
-               rem_diff -= 1;
+                }
+                cur_loc -= 1;
+                rem_diff -= 1;
             }
             let extra_add = {
-               if cur_loc == -1 {
+                if cur_loc == -1 {
                     0
-               } else if cur_loc.rem_euclid(fm as i32) == 0 {
+                } else if cur_loc.rem_euclid(fm as isize) == 0 {
                     let index = (cur_loc as u32)/fm;
                     new_occ_index[index as usize]
-               } else {
+                } else {
                     panic!("Something bad happened");
                     0
-               }
+                }
             };
 
-            final_position = (extra_add as i32)+(tot_add as i32)-1;
+            final_position = (extra_add as isize)+(tot_add as isize)-1;
 
         }
 
         if val == 1 {
 
             //let occ_index = &pbwt_data.occ_list[i][1];
-            let new_occ_index = &pbwt_data.occ_list[i][1];
+            let new_occ_index = &pbwt_data.occ_list[col_number][1];
 
             let fm = pbwt_data.fm_gap;
 
             let mut tot_add = 0;
             let mut cur_loc = location;
 
-            let mut rem_diff = cur_loc.rem_euclid(fm as i32);
+            let mut rem_diff = cur_loc.rem_euclid(fm as isize);
 
             while (rem_diff != 0) && (cur_loc != -1) {
-                let cur_val = pbwt_data.bin_pbwt[i][cur_loc as usize];
+                let cur_val = pbwt_data.bin_pbwt[col_number][cur_loc as usize];
                 if cur_val == 1 {
                     tot_add += 1;
                 }
@@ -309,7 +322,7 @@ pub fn spaced_get_position(pbwt_data : &SpacedPbwt,
             let extra_add = {
                 if cur_loc == -1 {
                     0
-                } else if cur_loc.rem_euclid(fm as i32) == 0 {
+                } else if cur_loc.rem_euclid(fm as isize) == 0 {
                     let index = (cur_loc as u32)/fm;
                     new_occ_index[index as usize]
                 } else {
@@ -318,39 +331,113 @@ pub fn spaced_get_position(pbwt_data : &SpacedPbwt,
                 }
             };
 
-            final_position = (extra_add as i32)+(tot_add as i32)+(pbwt_data.count[i as usize] as i32)-1;
+            final_position = (extra_add as isize)+(tot_add as isize)+(pbwt_data.count[col_number as usize] as isize)-1;
         }
-        return final_position;
     } else {
-        return location;
+        final_position = location;
     }
+
+    if (side_distance == 0) && (divergence_distance == 0) {
+        return PositionData{position:final_position,side_data:vec![Vec::new(),Vec::new()],
+            divergence_data: vec![Vec::new(),Vec::new()]}
+    }
+
+    let mut upper_data: Vec<u8>;
+    let mut lower_data: Vec<u8>;
+
+    if (final_position == -1) {
+        lower_data = Vec::new();
+        upper_data = pbwt_data.bin_pbwt[col_number][0..side_distance].to_vec();
+
+        if side_distance > pbwt_data.num_samples as usize {
+            panic!("Side distance is bigger than number of samples in PBWT");
+        }
+    } else {
+
+        let low_point: usize = cmp::max(0,final_position-(side_distance as isize)+1) as usize;
+        let high_point: usize = cmp::min(pbwt_data.num_samples as isize ,final_position+(side_distance as isize)+1) as usize;
+        
+        lower_data = pbwt_data.bin_pbwt[col_number][low_point..(final_position as usize)+1].to_vec();
+        lower_data.reverse();
+        upper_data = pbwt_data.bin_pbwt[col_number][(final_position as usize) +1..high_point].to_vec();
+    }
+
+    let current_upper_divergence = &current_divergence[0];
+    let current_lower_divergence = &current_divergence[1];
+
+    let mut new_lower_divergence: Vec<u32> = Vec::new();
+    let mut new_upper_divergence: Vec<u32> = Vec::new();
+
+    for s in 0..cmp::min(lower_data.len(),divergence_distance) {
+        if lower_data[s] == val {
+            new_lower_divergence.push(current_lower_divergence[s]+1);
+        }
+    }
+
+    for s in 0..cmp::min(upper_data.len(),divergence_distance) {
+        if upper_data[s] == val {
+            new_upper_divergence.push(current_upper_divergence[s]+1);
+        }
+    }
+
+    new_lower_divergence.append(&mut vec![0;divergence_distance-new_lower_divergence.len()]);
+    new_upper_divergence.append(&mut vec![0;divergence_distance-new_upper_divergence.len()]);
+
+    return PositionData{position:final_position,side_data:vec![lower_data,upper_data],
+        divergence_data: vec![new_lower_divergence,new_upper_divergence]};
+
+    
+
 }
 
 pub fn spaced_insert_place(pbwt_data: &SpacedPbwt,
-    test_sequence: &Vec<u8>) -> Vec<i32> {
-        let mut insert_positions : Vec<i32> = Vec::with_capacity(test_sequence.len()+1);
-        insert_positions.push((pbwt_data.bin_pbwt[0].len()-1) as i32);
+    test_sequence: &Vec<u8>, side_distance: usize, divergence_distance: usize) -> FullInsertData {
+        
+        let mut insert_positions : Vec<isize> = Vec::with_capacity(test_sequence.len()+1);
+        insert_positions.push((pbwt_data.bin_pbwt[0].len()-1) as isize);
+       
+        let mut side_values: Vec<Vec<Vec<u8>>> = Vec::with_capacity(test_sequence.len());
+        let mut divergence_values: Vec<Vec<Vec<u32>>> = Vec::with_capacity(test_sequence.len());
+
+        let mut current_divergence:Vec<Vec<u32>> = vec![vec![0;divergence_distance],vec![0;divergence_distance]];
+
         for i in 0..test_sequence.len() {
             let col_type = pbwt_data.pbwt_col_flags[i];
             let cur_pos = insert_positions[insert_positions.len()-1];
             let cur_val = test_sequence[i];
+            
+            let upcoming_position = spaced_get_position(pbwt_data,col_type,
+                i,cur_pos,cur_val,side_distance,divergence_distance,
+                &current_divergence);
 
-            let next_pos = spaced_get_position(pbwt_data,col_type,i,cur_pos,cur_val);
-            insert_positions.push(next_pos);
-       }
+            
+            insert_positions.push(upcoming_position.position);
+            side_values.push(upcoming_position.side_data);
+            divergence_values.push(upcoming_position.divergence_data);
+        }
+    return FullInsertData{insert_positions: insert_positions, side_values: side_values,
+        divergence_values:divergence_values};
+}
 
-
-       return insert_positions;
-    }
-
-pub fn spaced_recover_sequence(pbwt_data: &SpacedPbwt, index: u32) -> Vec<u8> {
+pub fn spaced_recover_sequence(pbwt_data: &SpacedPbwt, index: isize) -> Vec<u8> {
     let length = pbwt_data.bin_pbwt.len();
     let mut fin: Vec<u8> = Vec::with_capacity(length);
-    let mut cur_loc = index;
+    let mut cur_loc: isize = index;
+
+    if index < 0 {
+        panic!("Index of sequence to recover must be non-negative");
+    }
+    
+    let divergence_dummy: Vec<Vec<u32>> = vec![vec![],vec![]];
+
     for i in (0..length) {
         let val = pbwt_data.bin_pbwt[i][cur_loc as usize];
         fin.push(val);
-        cur_loc = spaced_get_position(pbwt_data,pbwt_data.pbwt_col_flags[i],i,cur_loc as i32,val) as u32;
+        let positional_data = spaced_get_position(pbwt_data,pbwt_data.pbwt_col_flags[i],
+            i,cur_loc,val,0,
+            0,&divergence_dummy);
+
+        cur_loc = positional_data.position;
     }
     return fin;
 }
