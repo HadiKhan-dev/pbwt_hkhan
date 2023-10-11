@@ -71,6 +71,7 @@ pub fn compare_results(true_values: &Vec<Vec<u8>>, imputed_values: &Vec<Vec<u8>>
     for j in 0..bucketed.len() {
         let name = format!("{}",buckets[j]);
 
+
         let size = bucketed[j].len();
         let mut trues:  Vec<f64> = Vec::with_capacity(size);
         let mut imputes: Vec<f64> = Vec::with_capacity(size);

@@ -51,59 +51,57 @@ fn main() {
     // vec![[vec![1.0; 5],vec![0.0;5],vec![1.0; 5],vec![0.0;5],
     // vec![1.0; 5],vec![0.0;5],vec![1.0; 5],vec![0.0;5],vec![10.0;40]].concat()];
 
-    let mut data: Vec<Vec<f32>> = vec![vec![1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15]];
+    // let mut data: Vec<Vec<f32>> = vec![vec![1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15, 1e-15]];
 
-    let mut flat_data = imputer::flatten_matrix(data);
+    // let mut flat_data = imputer::flatten_matrix(data);
 
-    imputer::fix_zeros(&mut flat_data);
+    // imputer::fix_zeros(&mut flat_data);
 
-    let mut d_matrix = xgboost_rs::DMatrix::from_dense(&mut flat_data,1).unwrap();
+    // let mut d_matrix = xgboost_rs::DMatrix::from_dense(&mut flat_data,1).unwrap();
 
-    let model_100 = xgboost_rs::Booster::load(
-        "../pbwt_python/xgboost_models/model_100.json").unwrap();
+    // let model_100 = xgboost_rs::Booster::load(
+    //     "../pbwt_python/xgboost_models/model_100.json").unwrap();
 
-    let preds = model_100.predict(&d_matrix).unwrap();
+    // let preds = model_100.predict(&d_matrix).unwrap();
 
-    println!("{:?}",preds);
+    // println!("{:?}",preds);
 
     ///////////////////////////////////////////////
 
     let model_0dot1 = xgboost_rs::Booster::load(
-        "../pbwt_python/xgboost_models/model_2.json").unwrap();
+        "../pbwt_python/xgboost_models/test_model_5.json").unwrap();
     let model_0dot2 = xgboost_rs::Booster::load(
-        "../pbwt_python/xgboost_models/model_2.json").unwrap();
+        "../pbwt_python/xgboost_models/test_model_5.json").unwrap();
     let model_0dot3 = xgboost_rs::Booster::load(
-        "../pbwt_python/xgboost_models/model_2.json").unwrap();
+        "../pbwt_python/xgboost_models/test_model_5.json").unwrap();
     let model_0dot5 = xgboost_rs::Booster::load(
-        "../pbwt_python/xgboost_models/model_2.json").unwrap();
+        "../pbwt_python/xgboost_models/test_model_5.json").unwrap();
     let model_0dot7 = xgboost_rs::Booster::load(
-        "../pbwt_python/xgboost_models/model_2.json").unwrap();
+        "../pbwt_python/xgboost_models/test_model_5.json").unwrap();
     let model_1 = xgboost_rs::Booster::load(
-        "../pbwt_python/xgboost_models/model_2.json").unwrap();
+        "../pbwt_python/xgboost_models/test_model_5.json").unwrap();
     let model_2 = xgboost_rs::Booster::load(
-        "../pbwt_python/xgboost_models/model_2.json").unwrap();
+        "../pbwt_python/xgboost_models/test_model_5.json").unwrap();
     let model_3 = xgboost_rs::Booster::load(
-        "../pbwt_python/xgboost_models/model_3.json").unwrap();
+        "../pbwt_python/xgboost_models/test_model_3.json").unwrap();
     let model_5 = xgboost_rs::Booster::load(
-        "../pbwt_python/xgboost_models/model_5.json").unwrap();
+        "../pbwt_python/xgboost_models/test_model_5.json").unwrap();
     let model_7 = xgboost_rs::Booster::load(
-        "../pbwt_python/xgboost_models/model_7.json").unwrap();
+        "../pbwt_python/xgboost_models/test_model_7.json").unwrap();
     let model_10 = xgboost_rs::Booster::load(
-        "../pbwt_python/xgboost_models/model_10.json").unwrap();
+        "../pbwt_python/xgboost_models/test_model_10.json").unwrap();
     let model_20 = xgboost_rs::Booster::load(
-        "../pbwt_python/xgboost_models/model_20.json").unwrap();
+        "../pbwt_python/xgboost_models/test_model_20.json").unwrap();
     let model_30 = xgboost_rs::Booster::load(
-        "../pbwt_python/xgboost_models/model_30.json").unwrap();
+        "../pbwt_python/xgboost_models/test_model_30.json").unwrap();
     let model_50 = xgboost_rs::Booster::load(
-        "../pbwt_python/xgboost_models/model_50.json").unwrap();
+        "../pbwt_python/xgboost_models/test_model_50.json").unwrap();
     let model_70 = xgboost_rs::Booster::load(
-        "../pbwt_python/xgboost_models/model_70.json").unwrap();
+        "../pbwt_python/xgboost_models/test_model_70.json").unwrap();
     let model_90 = xgboost_rs::Booster::load(
-        "../pbwt_python/xgboost_models/model_90.json").unwrap();
+        "../pbwt_python/xgboost_models/test_model_90.json").unwrap();
     let model_100 = xgboost_rs::Booster::load(
-        "../pbwt_python/xgboost_models/new_model_100.json").unwrap();
-    let basic_model = xgboost_rs::Booster::load(
-        "../pbwt_python/xgboost_models/basic_model.json").unwrap();
+        "../pbwt_python/xgboost_models/test_model_100.json").unwrap();
 
     let xgboost_models = vec![model_0dot1,model_0dot2,model_0dot3,model_0dot5,
                                         model_0dot7,model_1,model_2,model_3,model_5,model_7,
@@ -125,7 +123,6 @@ fn main() {
     
 
     let kept_sites = positions_parse::get_intersection(&read_sites,&illu_sites);
-
 
     let new_test_vcf = positions_parse::keep_sites(&kept_sites,&test_vcf);
 
@@ -158,8 +155,14 @@ fn main() {
         freqs.push(100.0*(1.0-zero_freq));
     }
 
+    
+
     let mut a = new_test_vcf.vcf_data.clone();
     let mut b = test_vcf.vcf_data.clone();
+
+    // a = vec![a[0].clone()];
+    // b = vec![b[0].clone()];
+
 
     for i in 0..0 {
         let mut m = new_test_vcf.vcf_data.clone();
@@ -170,11 +173,17 @@ fn main() {
 
     let am = Arc::new(dual_panel_pbwt);
     let bm = Arc::clone(&am);
+    let cm = Arc::clone(&am);
 
     let now = std::time::Instant::now();
 
-    // let imp = imputer::impute_single_xgboost(&am,&arc_models,&a[0]);
+    // let imp = imputer::impute_single_xgboost(&am,
+    //     &arc_models,&a[5]);
+
     let imputed = imputer::impute_xgboost(am,arc_models,a,8);
+
+    // let imputed = imputer::impute_pca(am,a,8);
+
 
     let elapsed = now.elapsed();
     

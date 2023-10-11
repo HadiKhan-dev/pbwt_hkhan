@@ -4,6 +4,13 @@ pub struct PositionData {
     pub divergence_data: Vec<Vec<u32>>,
 }
 
+pub struct SideData {
+    pub side_data: Vec<Vec<u8>>,
+    pub divergence_data: Vec<Vec<u32>>,
+}
+
+
+#[derive(Clone)]
 pub struct FullInsertData {
     pub insert_positions: Vec<isize>,
     pub side_values: Vec<Vec<Vec<u8>>>,

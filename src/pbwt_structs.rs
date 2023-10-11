@@ -19,8 +19,10 @@ pub struct SpacedPbwt {
     pub num_inserted_sites: u32,
     pub num_total_sites: u32,
 
+
     pub pbwt_positions: Vec<u32>,
     pub inserted_positions: Vec<u32>,
+    pub allele_freqs: Vec<f32>,
     pub all_positions: Vec<u32>,
     pub pbwt_col_flags: Vec<u8>,
 

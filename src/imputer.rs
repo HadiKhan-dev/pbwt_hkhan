@@ -42,10 +42,10 @@ pub fn flatten_matrix(data: Vec<Vec<f32>>) -> Vec<f32> {
 
 pub fn impute_single_pca(pbwt_data: &DualPbwt, test_sequence: &Vec<u8>) -> Vec<u8> {
 
-    let buckets : Vec<f64> = vec![0.1,0.2,0.3,0.5,0.7,1.0,2.0,3.0,
+    let buckets : Vec<f32> = vec![0.1,0.2,0.3,0.5,0.7,1.0,2.0,3.0,
     5.0,7.0,10.0,20.0,30.0,50.0,70.0,90.0,100.0];
 
-    let prob_cutoff : Vec<f64> = vec![0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,
+    let prob_cutoff : Vec<f32> = vec![0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,
     0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5];
 
     let side_distance = 10;
@@ -78,8 +78,10 @@ pub fn impute_single_pca(pbwt_data: &DualPbwt, test_sequence: &Vec<u8>) -> Vec<u
 
             let mut loc;
 
-            let one_freq = 100.0*(1.0-(pbwt_data.forward_pbwt.count[i] as f64)/(pbwt_data.forward_pbwt.num_samples as f64));
+            let one_freq: f32 = 100.0*(1.0-(pbwt_data.forward_pbwt.count[i] as f32)/(pbwt_data.forward_pbwt.num_samples as f32));
             
+            let one_prob: f32 = one_freq/100.0;
+
             let bucket_position = buckets.binary_search_by(|v| {
                 v.partial_cmp(&one_freq).expect("Couldn't compare values")
             });
@@ -93,7 +95,7 @@ pub fn impute_single_pca(pbwt_data: &DualPbwt, test_sequence: &Vec<u8>) -> Vec<u
                 }
             }
 
-            let bucket_midpoint: f64;
+            let bucket_midpoint: f32;
 
             if loc == 0 {
                 bucket_midpoint = buckets[0]/2.0;
@@ -101,7 +103,7 @@ pub fn impute_single_pca(pbwt_data: &DualPbwt, test_sequence: &Vec<u8>) -> Vec<u
                 bucket_midpoint = (buckets[loc]+buckets[loc-1])/2.0;
             }
 
-            let mut made_coeffs: Vec<f64> = vec![0.0; side_distance as usize];
+            let mut made_coeffs: Vec<f32> = vec![0.0; side_distance as usize];
 
             let place_forward = forward_positions[i];
             let place_reverse = reverse_positions[i];
@@ -115,31 +117,31 @@ pub fn impute_single_pca(pbwt_data: &DualPbwt, test_sequence: &Vec<u8>) -> Vec<u
 
 
             for i in 0..(side_distance as usize) {
-                let forward_lower_val: f64;
-                let forward_upper_val: f64;
-                let reverse_lower_val: f64;
-                let reverse_upper_val: f64;
+                let forward_lower_val: f32;
+                let forward_upper_val: f32;
+                let reverse_lower_val: f32;
+                let reverse_upper_val: f32;
 
                 if i < forward_vals_lower.len() {
-                    forward_lower_val = forward_vals_lower[i] as f64; 
+                    forward_lower_val = forward_vals_lower[i] as f32; 
                 } else {
                     forward_lower_val = bucket_midpoint;
                 }
 
                 if i < forward_vals_upper.len() {
-                    forward_upper_val = forward_vals_upper[i] as f64; 
+                    forward_upper_val = forward_vals_upper[i] as f32; 
                 } else {
                     forward_upper_val = bucket_midpoint;
                 }
 
                 if i < reverse_vals_lower.len() {
-                    reverse_lower_val = reverse_vals_lower[i] as f64; 
+                    reverse_lower_val = reverse_vals_lower[i] as f32; 
                 } else {
                     reverse_lower_val = bucket_midpoint;
                 }
 
                 if i < reverse_vals_upper.len() {
-                    reverse_upper_val = reverse_vals_upper[i] as f64; 
+                    reverse_upper_val = reverse_vals_upper[i] as f32; 
                 } else {
                     reverse_upper_val = bucket_midpoint;
                 }
@@ -154,7 +156,7 @@ pub fn impute_single_pca(pbwt_data: &DualPbwt, test_sequence: &Vec<u8>) -> Vec<u
 
             }
 
-            let prob: f64 = pca_weights::get_probability(&made_coeffs,loc);
+            let prob: f32 = pca_weights::get_probability(&made_coeffs,loc);
 
             if prob > prob_cutoff[loc] {
                 final_sequence.push(1);
@@ -200,18 +202,24 @@ pub fn impute_single_xgboost(pbwt_data: &DualPbwt, xgboost_models: &Vec<xgboost_
 
     let mut final_sequence: Vec<u8> = Vec::new();
 
-    let m = test_sequence.len();
+    let test_seq_len = test_sequence.len();
     let panel_size = pbwt_data.forward_pbwt.num_samples as usize;
 
     let mut test_rev = test_sequence.clone();
     test_rev.reverse();
 
-    let mut forward_places = spaced_insert_place(&pbwt_data.forward_pbwt, test_sequence,10,10);
-    let mut reverse_places = spaced_insert_place(&pbwt_data.reverse_pbwt, &test_rev,10,10);
-    
+    let mut forward_places = spaced_insert_place(&pbwt_data.forward_pbwt, test_sequence,side_length,divergence_length);
+    let mut reverse_places = spaced_insert_place(&pbwt_data.reverse_pbwt, &test_rev,side_length,divergence_length);
+    // let mut reverse_places = forward_places.clone();
+
     let mut forward_positions = forward_places.insert_positions;
     let mut forward_side_data = forward_places.side_values;
     let mut forward_divergence = forward_places.divergence_values;
+
+    // println!("INSERT POS {:?}",forward_positions[231]);
+    // println!("INSERT SIDE {:?}",forward_side_data[231]);
+    // println!("Forward Distances: {:?}",forward_divergence[231]);
+    // println!("Forward Len: {:?}",forward_divergence.len());
     
     let mut reverse_positions = reverse_places.insert_positions;
     let mut reverse_side_data = reverse_places.side_values;
@@ -222,7 +230,7 @@ pub fn impute_single_xgboost(pbwt_data: &DualPbwt, xgboost_models: &Vec<xgboost_
     reverse_divergence.reverse();
 
 
-    for i in 0..m {
+    for i in 0..test_seq_len {
         if test_sequence[i] != 255 {
             middle_sequence.push(test_sequence[i]);
         } else {
@@ -230,6 +238,8 @@ pub fn impute_single_xgboost(pbwt_data: &DualPbwt, xgboost_models: &Vec<xgboost_
 
             let one_freq = 100.0*(1.0-(pbwt_data.forward_pbwt.count[i] as f32)/(pbwt_data.forward_pbwt.num_samples as f32));
             
+            let one_prob: f32 = one_freq/100.0;
+
             let bucket_position = buckets.binary_search_by(|v| {
                 v.partial_cmp(&one_freq).expect("Couldn't compare values")
             });
@@ -267,19 +277,22 @@ pub fn impute_single_xgboost(pbwt_data: &DualPbwt, xgboost_models: &Vec<xgboost_
             let reverse_divergence_lower = reverse_divergence[i][0].clone();
             let reverse_divergence_upper = reverse_divergence[i][1].clone();
 
-            forward_side_lower.append(&mut vec![bucket_midpoint; side_length-forward_side_lower.len()]);
-            forward_side_upper.append(&mut vec![bucket_midpoint; side_length-forward_side_upper.len()]);
+            forward_side_lower.append(&mut vec![one_prob; side_length-forward_side_lower.len()]);
+            forward_side_upper.append(&mut vec![one_prob; side_length-forward_side_upper.len()]);
 
-            reverse_side_lower.append(&mut vec![bucket_midpoint; side_length-reverse_side_lower.len()]);
-            reverse_side_upper.append(&mut vec![bucket_midpoint; side_length-reverse_side_upper.len()]);
+            reverse_side_lower.append(&mut vec![one_prob; side_length-reverse_side_lower.len()]);
+            reverse_side_upper.append(&mut vec![one_prob; side_length-reverse_side_upper.len()]);
 
 
             let mut full_side_data = [forward_side_lower,forward_side_upper,reverse_side_lower,reverse_side_upper].concat();
-            let mut full_divergence_data = [forward_divergence_lower,forward_divergence_upper,reverse_divergence_lower,reverse_divergence_upper].concat().iter().map(|x| *x as f32).collect();
+            let mut full_divergence_data: Vec<f32> = [forward_divergence_lower,forward_divergence_upper,reverse_divergence_lower,reverse_divergence_upper].concat().iter().map(|x| *x as f32).collect();
             
+            // full_divergence_data = vec![200.0; full_divergence_data.len()];
             let mut full_data = [full_side_data,full_divergence_data].concat();
             
+
             fix_zeros(&mut full_data);
+
 
             impute_inputs[loc].append(&mut full_data);
             impute_counts[loc] += 1;
@@ -294,9 +307,6 @@ pub fn impute_single_xgboost(pbwt_data: &DualPbwt, xgboost_models: &Vec<xgboost_
         let d_matrix = xgboost_rs::DMatrix::from_dense(&mut impute_inputs[j],impute_counts[j]).unwrap();
         let impute_numbers = xgboost_models[16].predict(&d_matrix).unwrap();
 
-        if j == buckets.len()-1 {
-            println!("{:?}",&impute_inputs[j][0..80]);
-        }
         imputed_values.push(impute_numbers.iter().map(
             |x| small_test(*x,prob_cutoff[j])).collect());
     }
@@ -304,7 +314,7 @@ pub fn impute_single_xgboost(pbwt_data: &DualPbwt, xgboost_models: &Vec<xgboost_
     let mut imputed_iter: Vec<Iter<u8>> = imputed_values.iter().map(|x| x.iter()).collect();
 
 
-    for i in 0..m {
+    for i in 0..test_seq_len {
         let value = middle_sequence[i];
         if value < 100 {
             final_sequence.push(value)
